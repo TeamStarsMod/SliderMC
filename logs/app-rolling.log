@@ -1,2 +1,6 @@
 [ INFO ] [ tcpServerSession-3-1 | 2025-03-01 18:58:31 ] 成功！TextComponentImpl{content="§cSlider§bMC §7- §aRebuild", style=StyleImpl{obfuscated=not_set, bold=not_set, strikethrough=not_set, underlined=not_set, italic=not_set, color=null, clickEvent=null, hoverEvent=null, insertion=null, font=null}, children=[]}, PlayerInfo(maxPlayers=100, onlinePlayers=0, players=[]), VersionInfo(versionName=1.21, protocolVersion=767), null, false
 [ INFO ] [ tcpServerSession-3-3 | 2025-03-01 19:01:12 ] 成功！TextComponentImpl{content="§cSlider§bMC §7- §aRebuild", style=StyleImpl{obfuscated=not_set, bold=not_set, strikethrough=not_set, underlined=not_set, italic=not_set, color=null, clickEvent=null, hoverEvent=null, insertion=null, font=null}, children=[]}, PlayerInfo(maxPlayers=100, onlinePlayers=0, players=[]), VersionInfo(versionName=1.21, protocolVersion=767), null, false
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 19:13:36 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 19:15:45 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 19:17:00 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ tcpServerSession-3-5 | 2025-03-01 19:42:12 ] 玩家 Neko110923 加入了游戏
