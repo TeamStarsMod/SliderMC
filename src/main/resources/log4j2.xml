@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+    <Appenders>
+        <!-- 控制台输出 -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="[ %-5level] [ %t | %d{yyyy-MM-dd HH:mm:ss} ] %msg%n" />
+        </Console>
+
+        <!-- 文件输出 -->
+        <File name="File" fileName="logs/app.log" append="false">
+            <PatternLayout pattern="[ %-5level] [ %t | %d{yyyy-MM-dd HH:mm:ss} ] %msg%n" />
+        </File>
+
+        <!-- 滚动文件输出 -->
+        <RollingFile name="RollingFile" fileName="logs/app-rolling.log" filePattern="logs/$${date:yyyy-MM}/app-%d{MM-dd-yyyy}-%i.log.gz">
+            <PatternLayout pattern="[ %-5level] [ %t | %d{yyyy-MM-dd HH:mm:ss} ] %msg%n" />
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1" modulate="true" />
+                <SizeBasedTriggeringPolicy size="100 MB" />
+            </Policies>
+            <DefaultRolloverStrategy max="10" />
+        </RollingFile>
+    </Appenders>
+
+    <Loggers>
+        <!-- 根日志级别 -->
+        <Root level="info">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="File" />
+            <AppenderRef ref="RollingFile" />
+        </Root>
+
+        <!-- 特定包或类的日志级别 -->
+        <Logger name="xyz.article" level="debug" additivity="false">
+            <AppenderRef ref="Console" />
+            <AppenderRef ref="File" />
+            <AppenderRef ref="RollingFile" />
+        </Logger>
+    </Loggers>
+</Configuration>
