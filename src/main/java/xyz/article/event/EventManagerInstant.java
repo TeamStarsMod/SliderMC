@@ -1,5 +1,6 @@
 package xyz.article.event;
 
+import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.api.event.Event;
@@ -63,6 +64,7 @@ public class EventManagerInstant implements EventManager {
     public static class ExampleListener implements Listener {
         @EventExecutor
         public void onEvent (ClientPingEvent event) {
+            event.setMotd(Component.text("事件监听器测试：修改motd"));
         }
     }
 }

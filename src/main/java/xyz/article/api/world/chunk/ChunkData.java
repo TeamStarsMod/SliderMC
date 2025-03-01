@@ -4,11 +4,18 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.cloudburstmc.nbt.NbtMap;
 import org.geysermc.mcprotocollib.protocol.codec.MinecraftCodecHelper;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.BitStorage;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.DataPalette;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.GlobalPalette;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.PaletteType;
 import org.geysermc.mcprotocollib.protocol.data.game.level.LightUpdateData;
 import org.geysermc.mcprotocollib.protocol.data.game.level.block.BlockEntityInfo;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundLevelChunkWithLightPacket;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.ArrayList;
+import java.util.BitSet;
 
 /**
  * Chunk数据
@@ -24,7 +31,7 @@ public class ChunkData {
      * 构建一个新区块 (请注意，区块数据并不会自动添加到世界中，需要您手动添加)
      * 子区块数组的索引0代表世界最底部的子区块，24代表世界最上方的子区块
      * @param pos 区块坐标
-     * @param chunkSections 子区块数组(大小24，对应-64到320y，共24个16x16x16的子区块)
+     * @param chunkSections 子区块数组 (大小24，对应-64到320y，共24个16x16x16的子区块)
      * @param heightMap 高度图数据
      * @param blockEntityInfos 方块实体数据
      * @param lightUpdateData 光照更新数据
@@ -38,6 +45,39 @@ public class ChunkData {
         this.heightMap = heightMap;
         this.blockEntityInfos = blockEntityInfos;
         this.lightUpdateData = lightUpdateData;
+    }
+
+    /**
+     * 构建一个空的新区块 (请注意，区块数据并不会自动添加到世界中，需要您手动添加)
+     * @param pos 区块坐标
+     */
+    public ChunkData(@NotNull ChunkPos pos) {
+        ChunkSection[] chunkSections = new ChunkSection[24];
+        for (int i = 0; i < 24; i++) {
+            chunkSections[i] = new ChunkSection(0, DataPalette.createForChunk(), new DataPalette(GlobalPalette.INSTANCE, new BitStorage(16, 4 * 4 * 4), PaletteType.BIOME));
+        }
+
+        this.chunkPos = pos;
+        this.chunkSections = chunkSections;
+        this.heightMap = NbtMap.EMPTY;
+        this.blockEntityInfos = new BlockEntityInfo[]{};
+        this.lightUpdateData = new LightUpdateData(new BitSet(), new BitSet(), new BitSet(), new BitSet(), new ArrayList<>(), new ArrayList<>());
+    }
+
+    /**
+     * 构建一个仅包含子区块数据的区块 (请注意，区块数据并不会自动添加到世界中，需要您手动添加)
+     * @param pos 区块坐标
+     * @param chunkSections 子区块数组 (大小24，对应-64到320y，共24个16x16x16的子区块)
+     */
+    public ChunkData(@NotNull ChunkPos pos, @NotNull ChunkSection[] chunkSections) {
+        if (chunkSections.length != 24) {
+            throw new IllegalArgumentException("ChunkSections数组的长度应该为24，但收到了 " + chunkSections.length + " ！");
+        }
+        this.chunkPos = pos;
+        this.chunkSections = chunkSections;
+        this.heightMap = NbtMap.EMPTY;
+        this.blockEntityInfos = new BlockEntityInfo[]{};
+        this.lightUpdateData = new LightUpdateData(new BitSet(), new BitSet(), new BitSet(), new BitSet(), new ArrayList<>(), new ArrayList<>());
     }
 
     public ChunkPos getChunkPos() {
