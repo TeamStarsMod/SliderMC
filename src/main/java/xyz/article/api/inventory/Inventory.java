@@ -36,6 +36,9 @@ public class Inventory {
     public void setItems(ItemStack[] items) {
         this.items = items;
     }
+    public void setItem(int slot, ItemStack item) {
+        this.items[slot] = item;
+    }
 
     public ContainerType getContainerType() {
         return containerType;

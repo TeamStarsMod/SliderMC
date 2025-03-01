@@ -3,6 +3,7 @@ package xyz.article.handlers;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
+import org.geysermc.mcprotocollib.auth.GameProfile;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.protocol.codec.MinecraftCodec;
 import org.geysermc.mcprotocollib.protocol.data.status.PlayerInfo;
@@ -11,9 +12,12 @@ import org.geysermc.mcprotocollib.protocol.data.status.VersionInfo;
 import org.geysermc.mcprotocollib.protocol.data.status.handler.ServerInfoBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import xyz.article.RunningData;
+import xyz.article.api.entities.player.Player;
 import xyz.article.api.event.events.ClientPingEvent;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import static xyz.article.MinecraftServer.eventManager;
 
@@ -57,7 +61,11 @@ public class ServerInfoBuildHandler implements ServerInfoBuilder {
         }
 
         Component gradientMOTD = builder.build();
-        PlayerInfo playerInfo = new PlayerInfo(100, 0, new ArrayList<>());
+        List<GameProfile> list = new ArrayList<>();
+        for (Player player : RunningData.players) {
+            list.add(player.getProfile());
+        }
+        PlayerInfo playerInfo = new PlayerInfo(100, RunningData.players.size(), list);
         VersionInfo versionInfo = new VersionInfo(MinecraftCodec.CODEC.getMinecraftVersion(), MinecraftCodec.CODEC.getProtocolVersion());
         byte[] icon = null;
         boolean enforcesSecureChat = false;

@@ -1,3 +1,12 @@
-[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:15:37 ] <-- kubernetes.docker.internal/127.0.0.1:12534 has pinged -->
-[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 22:16:16 ] <-- kubernetes.docker.internal/127.0.0.1:12708 has pinged -->
-[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 22:16:45 ] <-- kubernetes.docker.internal/127.0.0.1:12839 has pinged -->
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:18:31 ] <-- kubernetes.docker.internal/127.0.0.1:13249 has pinged -->
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 22:18:33 ] <-- kubernetes.docker.internal/127.0.0.1:13259 has pinged -->
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 22:18:50 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ tcpServerSession-3-4 | 2025-03-01 22:18:52 ] <-- kubernetes.docker.internal/127.0.0.1:13336 has pinged -->
+[ INFO ] [ tcpServerSession-3-5 | 2025-03-01 22:19:41 ] <-- kubernetes.docker.internal/127.0.0.1:13514 has pinged -->
+[ INFO ] [ nioEventLoopGroup-2-4 | 2025-03-01 22:19:48 ] Neko110923 离开了游戏
+[ INFO ] [ tcpServerSession-3-6 | 2025-03-01 22:19:48 ] <-- kubernetes.docker.internal/127.0.0.1:13541 has pinged -->
+[ INFO ] [ tcpServerSession-3-7 | 2025-03-01 22:19:49 ] <-- kubernetes.docker.internal/127.0.0.1:13548 has pinged -->
+[ INFO ] [ tcpServerSession-3-8 | 2025-03-01 22:20:12 ] <-- kubernetes.docker.internal/127.0.0.1:13636 has pinged -->
+[ INFO ] [ tcpServerSession-3-9 | 2025-03-01 22:21:03 ] <-- kubernetes.docker.internal/127.0.0.1:13828 has pinged -->
+[ INFO ] [ tcpServerSession-3-10 | 2025-03-01 22:21:09 ] <-- kubernetes.docker.internal/127.0.0.1:13861 has pinged -->
+[ INFO ] [ tcpServerSession-3-11 | 2025-03-01 22:21:13 ] <-- kubernetes.docker.internal/127.0.0.1:13874 has pinged -->
