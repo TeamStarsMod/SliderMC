@@ -1,31 +1,3 @@
-[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 20:19:35 ] 调用成功
-[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 20:19:57 ] 调用成功
-[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 20:19:57 ] 调用成功
-[ INFO ] [ tcpServerSession-3-4 | 2025-03-01 20:20:14 ] 调用成功
-[ INFO ] [ tcpServerSession-3-5 | 2025-03-01 20:20:16 ] 调用成功
-[ INFO ] [ tcpServerSession-3-6 | 2025-03-01 20:20:17 ] 调用成功
-[ INFO ] [ tcpServerSession-3-7 | 2025-03-01 20:20:17 ] 调用成功
-[ INFO ] [ tcpServerSession-3-8 | 2025-03-01 20:20:17 ] 调用成功
-[ INFO ] [ tcpServerSession-3-9 | 2025-03-01 20:20:18 ] 调用成功
-[ INFO ] [ tcpServerSession-3-10 | 2025-03-01 20:23:04 ] 调用成功
-[ INFO ] [ tcpServerSession-3-11 | 2025-03-01 20:27:46 ] 调用成功
-[ INFO ] [ tcpServerSession-3-12 | 2025-03-01 20:28:17 ] 调用成功
-[ INFO ] [ tcpServerSession-3-13 | 2025-03-01 20:28:19 ] 调用成功
-[ INFO ] [ tcpServerSession-3-14 | 2025-03-01 20:28:50 ] 调用成功
-[ INFO ] [ tcpServerSession-3-15 | 2025-03-01 20:29:06 ] 调用成功
-[ INFO ] [ tcpServerSession-3-16 | 2025-03-01 20:29:24 ] 调用成功
-[ INFO ] [ tcpServerSession-3-17 | 2025-03-01 20:29:30 ] 调用成功
-[ INFO ] [ tcpServerSession-3-18 | 2025-03-01 20:30:53 ] 调用成功
-[ INFO ] [ tcpServerSession-3-19 | 2025-03-01 20:30:54 ] 调用成功
-[ INFO ] [ tcpServerSession-3-20 | 2025-03-01 20:31:02 ] 调用成功
-[ INFO ] [ tcpServerSession-3-21 | 2025-03-01 20:31:13 ] 调用成功
-[ INFO ] [ tcpServerSession-3-22 | 2025-03-01 20:31:31 ] 调用成功
-[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 20:31:45 ] 调用成功
-[ INFO ] [ tcpServerSession-3-23 | 2025-03-01 20:31:48 ] 调用成功
-[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 20:32:00 ] 调用成功
-[ INFO ] [ tcpServerSession-3-24 | 2025-03-01 20:40:09 ] 调用成功
-[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 20:40:11 ] 调用成功
-[ INFO ] [ tcpServerSession-3-4 | 2025-03-01 20:40:13 ] 调用成功
-[ INFO ] [ tcpServerSession-3-5 | 2025-03-01 20:40:15 ] 调用成功
-[ INFO ] [ tcpServerSession-3-6 | 2025-03-01 20:40:16 ] 调用成功
-[ INFO ] [ tcpServerSession-3-7 | 2025-03-01 20:40:18 ] 调用成功
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:15:37 ] <-- kubernetes.docker.internal/127.0.0.1:12534 has pinged -->
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 22:16:16 ] <-- kubernetes.docker.internal/127.0.0.1:12708 has pinged -->
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 22:16:45 ] <-- kubernetes.docker.internal/127.0.0.1:12839 has pinged -->

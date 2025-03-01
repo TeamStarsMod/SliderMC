@@ -116,3 +116,75 @@
 [ INFO ] [ tcpServerSession-3-5 | 2025-03-01 20:40:15 ] 调用成功
 [ INFO ] [ tcpServerSession-3-6 | 2025-03-01 20:40:16 ] 调用成功
 [ INFO ] [ tcpServerSession-3-7 | 2025-03-01 20:40:18 ] 调用成功
+[ INFO ] [ tcpServerSession-3-8 | 2025-03-01 20:48:17 ] 调用成功
+[ INFO ] [ tcpServerSession-3-9 | 2025-03-01 20:48:18 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:10:25 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 21:15:50 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 21:16:40 ] 玩家 NekoR1Stone 加入了游戏
+[ INFO ] [ nioEventLoopGroup-2-2 | 2025-03-01 21:32:43 ] Neko110923 离开了游戏
+[ INFO ] [ tcpServerSession-3-5 | 2025-03-01 21:32:44 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ nioEventLoopGroup-2-4 | 2025-03-01 21:32:58 ] NekoR1Stone 离开了游戏
+[ INFO ] [ tcpServerSession-3-7 | 2025-03-01 21:33:00 ] 玩家 NekoR1Stone 加入了游戏
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 21:36:12 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ tcpServerSession-3-5 | 2025-03-01 21:36:45 ] 玩家 NekoR1Stone 加入了游戏
+[ INFO ] [ nioEventLoopGroup-2-2 | 2025-03-01 21:37:35 ] Neko110923 离开了游戏
+[ INFO ] [ tcpServerSession-3-7 | 2025-03-01 21:37:42 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 21:38:46 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 21:39:08 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 21:39:41 ] 玩家 NekoR1Stone 加入了游戏
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 21:41:38 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:42:11 ] 玩家 NekoR1Stone 加入了游戏
+[ INFO ] [ nioEventLoopGroup-2-2 | 2025-03-01 21:52:15 ] Neko110923 离开了游戏
+[ INFO ] [ tcpServerSession-3-4 | 2025-03-01 21:52:17 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ nioEventLoopGroup-2-3 | 2025-03-01 21:53:36 ] NekoR1Stone 离开了游戏
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:57:07 ] 玩家 Neko110923 加入了游戏
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:58:29 ] Neko110923: hi
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:58:32 ] Neko110923: look
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 21:58:35 ] 玩家 NekoR1Stone 加入了游戏
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:58:41 ] Neko110923: nahh
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:58:41 ] Neko110923: nahh
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:58:46 ] Neko110923: what
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:58:46 ] Neko110923: what
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:58:48 ] Neko110923: hey
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:58:48 ] Neko110923: hey
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:59:17 ] Neko110923: ok
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:59:17 ] Neko110923: ok
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:59:20 ] Neko110923: i fix it
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:59:20 ] Neko110923: i fix it
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:59:24 ] Neko110923: that be ok!
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:59:24 ] Neko110923: that be ok!
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 21:59:30 ] NekoR1Stone: sure!
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 21:59:30 ] NekoR1Stone: sure!
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 21:59:38 ] NekoR1Stone: did you like me?
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 21:59:38 ] NekoR1Stone: did you like me?
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:59:43 ] Neko110923: what
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 21:59:43 ] Neko110923: what
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 22:00:03 ] NekoR1Stone: 你好
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 22:00:03 ] NekoR1Stone: 你好
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 22:00:06 ] Neko110923: 你好
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 22:00:06 ] Neko110923: 你好
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 22:00:08 ] NekoR1Stone: yee
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 22:00:08 ] NekoR1Stone: yee
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 22:00:10 ] Neko110923: bruh
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 22:00:10 ] Neko110923: bruh
+[ INFO ] [ nioEventLoopGroup-2-3 | 2025-03-01 22:00:33 ] Neko110923 离开了游戏
+[ INFO ] [ nioEventLoopGroup-2-4 | 2025-03-01 22:00:35 ] NekoR1Stone 离开了游戏
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:03:22 ] <-- kubernetes.docker.internal/127.0.0.1:9335 has pinged -->
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 22:03:24 ] <-- kubernetes.docker.internal/127.0.0.1:9348 has pinged -->
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:03:43 ] <-- kubernetes.docker.internal has pinged -->
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:04:05 ] <-- kubernetes.docker.internal/127.0.0.1:9512 has pinged -->
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:04:23 ] <-- [id: 0x1931c680, L:/127.0.0.1:25565 - R:kubernetes.docker.internal/127.0.0.1:9580] has pinged -->
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:04:38 ] <-- /127.0.0.1:25565 has pinged -->
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:04:59 ] <-- kubernetes.docker.internal/127.0.0.1:9722 has pinged -->
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 22:05:00 ] <-- kubernetes.docker.internal/127.0.0.1:9729 has pinged -->
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 22:05:12 ] <-- kubernetes.docker.internal/127.0.0.1:9784 has pinged -->
+[ INFO ] [ tcpServerSession-3-4 | 2025-03-01 22:05:13 ] <-- kubernetes.docker.internal/127.0.0.1:9793 has pinged -->
+[ INFO ] [ tcpServerSession-3-5 | 2025-03-01 22:05:15 ] <-- kubernetes.docker.internal/127.0.0.1:9802 has pinged -->
+[ INFO ] [ tcpServerSession-3-6 | 2025-03-01 22:05:31 ] <-- kubernetes.docker.internal/127.0.0.1:9865 has pinged -->
+[ INFO ] [ tcpServerSession-3-7 | 2025-03-01 22:06:19 ] <-- kubernetes.docker.internal/127.0.0.1:10057 has pinged -->
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:13:43 ] <-- kubernetes.docker.internal/127.0.0.1:12077 has pinged -->
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:15:06 ] <-- kubernetes.docker.internal/127.0.0.1:12402 has pinged -->
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:15:21 ] <-- kubernetes.docker.internal/127.0.0.1:12467 has pinged -->
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:15:37 ] <-- kubernetes.docker.internal/127.0.0.1:12534 has pinged -->
+[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 22:16:16 ] <-- kubernetes.docker.internal/127.0.0.1:12708 has pinged -->
+[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 22:16:45 ] <-- kubernetes.docker.internal/127.0.0.1:12839 has pinged -->

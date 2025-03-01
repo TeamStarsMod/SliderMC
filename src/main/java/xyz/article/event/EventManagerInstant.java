@@ -60,11 +60,4 @@ public class EventManagerInstant implements EventManager {
         if (listeners.contains(listener)) listeners.remove(listener);
         else throw new IllegalArgumentException("这个监听器还没有被注册，无法移除！监听器实例 " + listener);
     }
-
-    public static class ExampleListener implements Listener {
-        @EventExecutor
-        public void onEvent (ClientPingEvent event) {
-            event.setMotd(Component.text("事件监听器测试：修改motd"));
-        }
-    }
 }

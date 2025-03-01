@@ -1,7 +1,10 @@
 package xyz.article;
 
 import xyz.article.api.packetprocessor.PacketProcessor;
-import xyz.article.packetprocessor.PingRequestPacketProcessor;
+import xyz.article.packetprocessor.ChatPacketProcessor;
+import xyz.article.packetprocessor.MovePlayerPosPacketProcessor;
+import xyz.article.packetprocessor.MovePlayerPosRotPacketProcessor;
+import xyz.article.packetprocessor.MovePlayerRotPacketProcessor;
 
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -18,7 +21,10 @@ public class Register {
     }
 
     public static void register() {
-        registerPacketProcessor(new PingRequestPacketProcessor());
+        registerPacketProcessor(new MovePlayerPosPacketProcessor());
+        registerPacketProcessor(new MovePlayerPosRotPacketProcessor());
+        registerPacketProcessor(new MovePlayerRotPacketProcessor());
+        registerPacketProcessor(new ChatPacketProcessor());
     }
 
     public static List<PacketProcessor> getPacketProcessors() {

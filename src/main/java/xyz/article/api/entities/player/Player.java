@@ -4,16 +4,31 @@ import org.geysermc.mcprotocollib.auth.GameProfile;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.packet.Packet;
 import xyz.article.api.inventory.PlayerInventory;
+import xyz.article.api.world.World;
 
 public class Player {
     private final Session session;
     private final GameProfile profile;
     private PlayerInventory inventory;
+    private World world;
+    private double locationX;
+    private double locationY;
+    private double locationZ;
+    private float angleYaw;
+    private float anglePitch;
+    private final int entityId;
 
-    public Player(Session session, GameProfile profile, PlayerInventory playerInventory) {
+    public Player(int entityId, Session session, GameProfile profile, PlayerInventory playerInventory, World world, double x, double y, double z, float yaw, float pitch) {
         this.session = session;
         this.profile = profile;
         this.inventory = playerInventory;
+        this.world = world;
+        this.locationX = x;
+        this.locationY = y;
+        this.locationZ = z;
+        this.angleYaw = yaw;
+        this.anglePitch = pitch;
+        this.entityId = entityId;
     }
 
     public void sendPacket (Packet packet) {
@@ -34,5 +49,49 @@ public class Player {
 
     public void setInventory(PlayerInventory inventory) {
         this.inventory = inventory;
+    }
+
+    public World getWorld() {
+        return world;
+    }
+    public double getX() {
+        return locationX;
+    }
+    public double getY() {
+        return locationY;
+    }
+    public double getZ() {
+        return locationZ;
+    }
+
+    public float getYaw() {
+        return angleYaw;
+    }
+    public float getPitch() {
+        return anglePitch;
+    }
+
+    public void setWorld(World world) {
+        this.world = world;
+    }
+    public void setX(double locationX) {
+        this.locationX = locationX;
+    }
+    public void setY(double locationY) {
+        this.locationY = locationY;
+    }
+    public void setZ(double locationZ) {
+        this.locationZ = locationZ;
+    }
+
+    public void setPitch(float anglePitch) {
+        this.anglePitch = anglePitch;
+    }
+    public void setYaw(float angleYaw) {
+        this.angleYaw = angleYaw;
+    }
+
+    public int getEntityId() {
+        return entityId;
     }
 }
