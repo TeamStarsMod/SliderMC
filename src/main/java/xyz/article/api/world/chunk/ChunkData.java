@@ -4,19 +4,16 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.cloudburstmc.nbt.NbtMap;
 import org.geysermc.mcprotocollib.protocol.codec.MinecraftCodecHelper;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.BitStorage;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.DataPalette;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.GlobalPalette;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.ListPalette;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.PaletteType;
 import org.geysermc.mcprotocollib.protocol.data.game.level.LightUpdateData;
 import org.geysermc.mcprotocollib.protocol.data.game.level.block.BlockEntityInfo;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundLevelChunkWithLightPacket;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
+import java.util.List;
 
 /**
  * Chunk数据
@@ -45,7 +42,26 @@ public class ChunkData {
         this.chunkSections = chunkSections;
         this.heightMap = heightMap;
         this.blockEntityInfos = blockEntityInfos;
-        this.lightUpdateData = lightUpdateData;
+        // 天空亮度15
+        // 创建标记所有 Y 层需要天空光照更新的 BitSet
+        BitSet skyYMask = new BitSet(24);
+        skyYMask.set(0, 24, true); // 标记所有 Y 层
+
+        List<byte[]> skyUpdates = new ArrayList<>(24);
+        for (int y = 0; y < 24; y++) {
+            byte[] layerData = new byte[2048];
+            Arrays.fill(layerData, (byte) 0xFF);
+            skyUpdates.add(layerData);
+        }
+
+        this.lightUpdateData = new LightUpdateData(
+                skyYMask, // 标记需要更新的 Y 层
+                new BitSet(), // 方块光照 Y 层掩码
+                new BitSet(), // 空天空光照 Y 层掩码
+                new BitSet(), // 空方块光照 Y 层掩码
+                skyUpdates,   // 天空光照数据
+                new ArrayList<>() // 方块光照数据
+        );
     }
 
     /**
@@ -63,7 +79,26 @@ public class ChunkData {
         this.chunkSections = chunkSections;
         this.heightMap = NbtMap.EMPTY;
         this.blockEntityInfos = new BlockEntityInfo[]{};
-        this.lightUpdateData = new LightUpdateData(new BitSet(), new BitSet(), new BitSet(), new BitSet(), new ArrayList<>(), new ArrayList<>());
+        // 天空亮度15
+        // 创建标记所有 Y 层需要天空光照更新的 BitSet
+        BitSet skyYMask = new BitSet(24);
+        skyYMask.set(0, 24, true); // 标记所有 Y 层
+
+        List<byte[]> skyUpdates = new ArrayList<>(24);
+        for (int y = 0; y < 24; y++) {
+            byte[] layerData = new byte[2048];
+            Arrays.fill(layerData, (byte) 0xFF);
+            skyUpdates.add(layerData);
+        }
+
+        this.lightUpdateData = new LightUpdateData(
+                skyYMask, // 标记需要更新的 Y 层
+                new BitSet(), // 方块光照 Y 层掩码
+                new BitSet(), // 空天空光照 Y 层掩码
+                new BitSet(), // 空方块光照 Y 层掩码
+                skyUpdates,   // 天空光照数据
+                new ArrayList<>() // 方块光照数据
+        );
     }
 
     /**
@@ -79,7 +114,26 @@ public class ChunkData {
         this.chunkSections = chunkSections;
         this.heightMap = NbtMap.EMPTY;
         this.blockEntityInfos = new BlockEntityInfo[]{};
-        this.lightUpdateData = new LightUpdateData(new BitSet(), new BitSet(), new BitSet(), new BitSet(), new ArrayList<>(), new ArrayList<>());
+        // 天空亮度15
+        // 创建标记所有 Y 层需要天空光照更新的 BitSet
+        BitSet skyYMask = new BitSet(24);
+        skyYMask.set(0, 24, true); // 标记所有 Y 层
+
+        List<byte[]> skyUpdates = new ArrayList<>(24);
+        for (int y = 0; y < 24; y++) {
+            byte[] layerData = new byte[2048];
+            Arrays.fill(layerData, (byte) 0xFF);
+            skyUpdates.add(layerData);
+        }
+
+        this.lightUpdateData = new LightUpdateData(
+                skyYMask, // 标记需要更新的 Y 层
+                new BitSet(), // 方块光照 Y 层掩码
+                new BitSet(), // 空天空光照 Y 层掩码
+                new BitSet(), // 空方块光照 Y 层掩码
+                skyUpdates,   // 天空光照数据
+                new ArrayList<>() // 方块光照数据
+        );
     }
 
     /**
