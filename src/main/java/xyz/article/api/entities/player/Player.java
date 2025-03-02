@@ -3,6 +3,7 @@ package xyz.article.api.entities.player;
 import org.geysermc.mcprotocollib.auth.GameProfile;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.packet.Packet;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.player.GameMode;
 import xyz.article.api.inventory.PlayerInventory;
 import xyz.article.api.world.World;
 
@@ -17,6 +18,8 @@ public class Player {
     private float angleYaw;
     private float anglePitch;
     private final int entityId;
+    private GameMode gameMode;
+    private final Hand mainHand, leftHand;
 
     /**
      * 创建一个新玩家实例
@@ -25,13 +28,14 @@ public class Player {
      * @param profile 此玩家的GameProfile实例
      * @param playerInventory 此玩家的物品栏
      * @param world 此玩家初始化时所在的世界(此玩家将会自动被添加到此世界)
+     * @param gameMode 玩家的游戏模式
      * @param x 此玩家初始化时的x坐标
      * @param y 此玩家初始化时的y坐标
      * @param z 此玩家初始化时的z坐标
      * @param yaw 此玩家初始化时的yaw角度
      * @param pitch 此玩家初始化时的pitch角度
      */
-    public Player(int entityId, Session session, GameProfile profile, PlayerInventory playerInventory, World world, double x, double y, double z, float yaw, float pitch) {
+    public Player(int entityId, Session session, GameProfile profile, PlayerInventory playerInventory, World world, GameMode gameMode, double x, double y, double z, float yaw, float pitch) {
         this.session = session;
         this.profile = profile;
         this.inventory = playerInventory;
@@ -42,6 +46,9 @@ public class Player {
         this.angleYaw = yaw;
         this.anglePitch = pitch;
         this.entityId = entityId;
+        this.gameMode = gameMode;
+        this.mainHand = new Hand();
+        this.leftHand = new Hand();
 
         world.getPlayers().add(this);
     }
@@ -108,5 +115,21 @@ public class Player {
 
     public int getEntityId() {
         return entityId;
+    }
+
+    public void setGameMode(GameMode gameMode) {
+        this.gameMode = gameMode;
+    }
+
+    public GameMode getGameMode() {
+        return gameMode;
+    }
+
+    public Hand getMainHand() {
+        return mainHand;
+    }
+
+    public Hand getLeftHand() {
+        return leftHand;
     }
 }

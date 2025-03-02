@@ -11,18 +11,21 @@ public class Inventory {
     private ItemStack[] items;
     private int containerId;
     private ContainerType containerType;
+    private String name;
 
     /**
      * 创建一个新的物品栏
+     * @param name 物品栏名称
      * @param containerId 物品栏ID
      * @param size 物品栏的大小
      * @param containerType 物品栏的类别
      */
-    public Inventory(int containerId, int size, ContainerType containerType) {
+    public Inventory(String name, int containerId, int size, ContainerType containerType) {
         this.containerId = containerId;
         this.size = size;
         this.items = new ItemStack[size];
         this.containerType = containerType;
+        this.name = name;
     }
 
     public int getSize() {
@@ -54,5 +57,12 @@ public class Inventory {
     }
     public void setContainerType(ContainerType containerType) {
         this.containerType = containerType;
+    }
+
+    public String getName() {
+        return name;
+    }
+    public void setName(String name) {
+        this.name = name;
     }
 }

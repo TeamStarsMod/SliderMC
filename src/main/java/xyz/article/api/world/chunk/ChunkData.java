@@ -8,6 +8,7 @@ import org.geysermc.mcprotocollib.protocol.data.game.chunk.BitStorage;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.DataPalette;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.GlobalPalette;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.ListPalette;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.PaletteType;
 import org.geysermc.mcprotocollib.protocol.data.game.level.LightUpdateData;
 import org.geysermc.mcprotocollib.protocol.data.game.level.block.BlockEntityInfo;
@@ -49,12 +50,13 @@ public class ChunkData {
 
     /**
      * 构建一个空的新区块 (请注意，区块数据并不会自动添加到世界中，需要您手动添加)
+     * 需要先将生物群系数据添加到此区块中，否则会导致游戏客户端崩溃
      * @param pos 区块坐标
      */
     public ChunkData(@NotNull ChunkPos pos) {
         ChunkSection[] chunkSections = new ChunkSection[24];
         for (int i = 0; i < 24; i++) {
-            chunkSections[i] = new ChunkSection(0, DataPalette.createForChunk(), new DataPalette(GlobalPalette.INSTANCE, new BitStorage(16, 4 * 4 * 4), PaletteType.BIOME));
+            chunkSections[i] = new ChunkSection();
         }
 
         this.chunkPos = pos;

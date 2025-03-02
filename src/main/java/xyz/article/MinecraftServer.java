@@ -28,6 +28,7 @@ import xyz.article.api.packetprocessor.PacketProcessor;
 import xyz.article.api.plugin.Plugin;
 import xyz.article.api.plugin.PluginManager;
 import xyz.article.api.world.World;
+import xyz.article.api.world.block.BlockItemMap;
 import xyz.article.event.EventManagerInstant;
 import xyz.article.handlers.LoginHandler;
 import xyz.article.handlers.ServerInfoBuildHandler;
@@ -94,6 +95,7 @@ public class MinecraftServer implements Server {
             }
         });
 
+        BlockItemMap.writeMap();
         RunningData.worldMap.put(Key.key("minecraft:overworld"), new World(Key.key("minecraft:overworld")));
         Register.register();
         pluginManager.loadAllJarInFolder(new File("./plugins"));

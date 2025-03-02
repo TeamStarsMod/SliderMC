@@ -22,6 +22,7 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.Clientbound
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundPlayerInfoUpdatePacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundSystemChatPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundChunksBiomesPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
@@ -45,20 +46,42 @@ public class LoginHandler implements ServerLoginHandler {
         // Player Login Logic
         GameProfile profile = session.getFlag(MinecraftConstants.PROFILE_KEY);
         int entityId = EntityID.getRandomEntityId();
-        Player player = new Player(entityId, session, profile, new PlayerInventory(), RunningData.worldMap.get(Key.key("minecraft:overworld")), 8.5, 64, 8.5, 0, 0);
+        Player player = new Player(entityId, session, profile, new PlayerInventory(), RunningData.worldMap.get(Key.key("minecraft:overworld")), GameMode.CREATIVE,8.5, 64, 8.5, 0, 0);
         RunningData.globalEntities.add(player.getEntityId());
-        session.send(new ClientboundLoginPacket(player.getEntityId(), false, new Key[]{ Key.key("minecraft:overworld") }, 100, 10, 16, false, false, false, new PlayerSpawnInfo(0, Key.key("minecraft:overworld"), 100, GameMode.CREATIVE, GameMode.CREATIVE, false, false, null, 100), true));
+        session.send(new ClientboundLoginPacket(player.getEntityId(), false, new Key[]{ Key.key("minecraft:overworld") }, 100, 10, 16, false, false, false, new PlayerSpawnInfo(0, player.getWorld().getKey(), 100, player.getGameMode(), player.getGameMode(), false, false, null, 100), true));
         session.send(new ClientboundServerBrandPacket("SliderMC - Rebuild").getPacket());
         ChunkSection[] chunkSections = new ChunkSection[24];
         for (int i = 0; i < 24; i++) {
-            chunkSections[i] = new ChunkSection(0, DataPalette.createForChunk(), new DataPalette(GlobalPalette.INSTANCE, new BitStorage(16, 4 * 4 * 4), PaletteType.BIOME));
+            chunkSections[i] = new ChunkSection();
+            chunkSections[i].getBiomeData().set(1, 1, 1, 1);
         }
         for (int i = 0; i < 16; i++) {
-            chunkSections[0].setBlock(i, 15, i, 9);
+            for (int l = 0; l < 16; l++) {
+                for (int j = 0; j < 16; j++) {
+                    chunkSections[0].setBlock(i, l, j, 9);
+                    chunkSections[0].getBiomeData().set(1, 1, 1, 1);
+                }
+            }
+        }
+        for (int i = 1; i < 24; i++) {
+            for (int e = 0; e < 16; e++) {
+                for (int l = 0; l < 16; l++) {
+                    for (int j = 0; j < 16; j++) {
+                        chunkSections[i].setBlock(e, l, j, 0);
+                        chunkSections[i].getBiomeData().set(1, 1, 1, 1);
+                    }
+                }
+            }
         }
         for (int i = -6; i < 6; i++) {
             for (int l = -6; l < 6; l++) {
-                session.send(new ChunkData(new ChunkPos(RunningData.worldMap.get(Key.key("minecraft:overworld")), Vector2i.from(i, l)), chunkSections).getPacket());
+                if (player.getWorld().getChunkDataMap().get(Vector2i.from(i, l)) == null) {
+                    ChunkData chunkData = new ChunkData(new ChunkPos(RunningData.worldMap.get(Key.key("minecraft:overworld")), Vector2i.from(i, l)), chunkSections);
+                    session.send(chunkData.getPacket());
+                    player.getWorld().getChunkDataMap().put(Vector2i.from(i, l), chunkData);
+                } else {
+                    session.send(player.getWorld().getChunkDataMap().get(Vector2i.from(i, l)).getPacket());
+                }
             }
         }
         RunningData.globalSessions.add(session);
