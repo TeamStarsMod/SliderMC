@@ -19,10 +19,13 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.Clientbound
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundRemoveEntitiesPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import xyz.article.api.Server;
 import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.event.EventManager;
+import xyz.article.api.event.Listener;
 import xyz.article.api.packetprocessor.PacketProcessor;
+import xyz.article.api.plugin.Plugin;
 import xyz.article.api.plugin.PluginManager;
 import xyz.article.api.world.World;
 import xyz.article.event.EventManagerInstant;
@@ -33,8 +36,9 @@ import xyz.article.plugin.PluginManagerInstant;
 import java.util.List;
 import java.util.Objects;
 
-public class MinecraftServer {
+public class MinecraftServer implements Server {
     private static MyTCPServer server;
+    public static Server apiServer;
     public static EventManager eventManager;
     public static PluginManager pluginManager;
     private static final Logger log = LoggerFactory.getLogger(MinecraftServer.class);
@@ -44,6 +48,7 @@ public class MinecraftServer {
         server = new MyTCPServer("0.0.0.0", 25565, MinecraftProtocol::new);
         eventManager = new EventManagerInstant();
         pluginManager = new PluginManagerInstant();
+        apiServer = new MinecraftServer();
         SessionService sessionService = new SessionService();
         sessionService.setProxy(null);
         server.setGlobalFlag(MinecraftConstants.SESSION_SERVICE_KEY, sessionService);
@@ -102,7 +107,18 @@ public class MinecraftServer {
         return server;
     }
 
-    public static EventManager getEventManager () {
+    @Override
+    public void registerEventListener(Listener listener, Plugin plugin) {
+
+    }
+
+    @Override
+    public EventManager getEventManager() {
         return eventManager;
+    }
+
+    @Override
+    public PluginManager getPluginManager() {
+        return null;
     }
 }

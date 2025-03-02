@@ -11,4 +11,5 @@ public interface Plugin {
     PluginManager getPluginManager ();
     Server getServer ();
     EventManager getEventManager ();
+    String getName ();
 }

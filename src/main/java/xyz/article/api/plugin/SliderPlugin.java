@@ -12,6 +12,7 @@ public abstract class SliderPlugin implements Plugin {
     private PluginManager pluginManager;
     private Server server;
     private EventManager eventManager;
+    private String name;
 
     @Override
     public File getDataFolder () {
@@ -56,6 +57,15 @@ public abstract class SliderPlugin implements Plugin {
 
     public void setEventManager (EventManager eventManager) {
         this.eventManager = eventManager;
+    }
+
+    @Override
+    public String getName () {
+        return name;
+    }
+
+    public void setName (String name) {
+        this.name = name;
     }
 
     public abstract void onEnabled ();

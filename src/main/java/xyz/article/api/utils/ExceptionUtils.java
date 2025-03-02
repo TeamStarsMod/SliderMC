@@ -6,7 +6,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 public class ExceptionUtils {
-    public static void ExceptionHandler (Logger logger, Throwable cause) {
+    public static void exceptionHandler(Logger logger, Throwable cause) {
         StringWriter writer = new StringWriter();
         PrintWriter pw = new PrintWriter(writer);
         cause.printStackTrace(pw);

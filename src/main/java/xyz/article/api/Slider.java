@@ -9,6 +9,7 @@ import xyz.article.api.entities.player.Player;
 import xyz.article.api.event.EventManager;
 
 public class Slider {
+    private final Server server = MinecraftServer.apiServer;
     /**
      * 获取玩家实例 (通过Session)
      * @param session 用于获取玩家的Session实例
