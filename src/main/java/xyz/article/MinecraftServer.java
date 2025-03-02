@@ -32,12 +32,13 @@ import java.util.List;
 import java.util.Objects;
 
 public class MinecraftServer {
-    private static TcpServer server;
+    private static MyTCPServer server;
     public static EventManager eventManager;
     private static final Logger log = LoggerFactory.getLogger(MinecraftServer.class);
 
     public static void main(String[] args) {
-        server = new TcpServer("0.0.0.0", 25565, MinecraftProtocol::new);
+        long start = System.currentTimeMillis();
+        server = new MyTCPServer("0.0.0.0", 25565, MinecraftProtocol::new);
         eventManager = new EventManagerInstant();
         SessionService sessionService = new SessionService();
         sessionService.setProxy(null);
@@ -86,6 +87,7 @@ public class MinecraftServer {
         RunningData.worldMap.put(Key.key("minecraft:overworld"), new World(Key.key("minecraft:overworld")));
         Register.register();
         server.bind();
+        log.info("启动完成，用时 {}ms，键入help来获取帮助！", System.currentTimeMillis() - start);
     }
 
     public static void destroy() {

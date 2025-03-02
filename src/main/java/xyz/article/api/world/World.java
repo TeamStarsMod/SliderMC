@@ -31,6 +31,7 @@ public class World {
         this.worldTick = new WorldTick(this);
         this.players = new CopyOnWriteArrayList<>();
 
+        log.info("正在初始化世界 {}", key);
         this.scheduler = Executors.newScheduledThreadPool(1); // 开启线程池处理Tick逻辑
         startTicking();
     }
