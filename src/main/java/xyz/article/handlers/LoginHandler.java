@@ -67,7 +67,7 @@ public class LoginHandler implements ServerLoginHandler {
         for (Session session1 : RunningData.globalSessions) {
             session1.send(new ClientboundSystemChatPacket(Component.text(profile.getName() + " 加入了游戏").color(NamedTextColor.YELLOW), false));
             EnumSet<PlayerListEntryAction> actions = EnumSet.of(PlayerListEntryAction.ADD_PLAYER, PlayerListEntryAction.UPDATE_GAME_MODE, PlayerListEntryAction.UPDATE_LATENCY, PlayerListEntryAction.UPDATE_LISTED);
-            session1.send(new ClientboundPlayerInfoUpdatePacket(actions, new PlayerListEntry[]{ new PlayerListEntry(
+            session1.send(new ClientboundPlayerInfoUpdatePacket(actions, new PlayerListEntry[]{new PlayerListEntry(
                     player.getProfile().getId(),
                     player.getProfile(),
                     true,
@@ -79,7 +79,9 @@ public class LoginHandler implements ServerLoginHandler {
                     null,
                     null
             )}));
-            session1.send(new ClientboundAddEntityPacket(player.getEntityId(), profile.getId(), EntityType.PLAYER, player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch(), 0));
+            if (!session1.equals(session)) {
+                session1.send(new ClientboundAddEntityPacket(player.getEntityId(), profile.getId(), EntityType.PLAYER, player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch(), 0));
+            }
         }
         List<PlayerListEntry> list = new ArrayList<>();
         for (Player player1 : RunningData.globalPlayers) {
