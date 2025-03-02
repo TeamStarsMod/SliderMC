@@ -51,6 +51,7 @@ public class PluginManagerInstant implements PluginManager {
                 sliderPlugin.setDescription(new Description(version));
                 sliderPlugin.setEventManager(MinecraftServer.eventManager);
                 sliderPlugin.setServer(MinecraftServer.apiServer);
+                sliderPlugin.setClassLoader(classLoader);
                 sliderPlugin.onEnabled();
                 plugins.put(name, sliderPlugin);
                 return sliderPlugin;
@@ -65,9 +66,27 @@ public class PluginManagerInstant implements PluginManager {
 
     @Override
     public void disablePlugin(Plugin plugin) {
+        if (plugins.containsKey(plugin.getName())) {
+            try {
+                SliderPlugin sliderPlugin = plugins.get(plugin.getName());
+                sliderPlugin.onDisabled();
+                sliderPlugin.getClassLoader().close();
+            } catch (IOException e) {
+                ExceptionUtils.exceptionHandler(log, e);
+            }
+        }
     }
 
     @Override
     public void disablePlugin(String name) {
+        if (plugins.containsKey(name)) {
+            try {
+                SliderPlugin sliderPlugin = plugins.get(name);
+                sliderPlugin.onDisabled();
+                sliderPlugin.getClassLoader().close();
+            } catch (IOException e) {
+                ExceptionUtils.exceptionHandler(log, e);
+            }
+        }
     }
 }

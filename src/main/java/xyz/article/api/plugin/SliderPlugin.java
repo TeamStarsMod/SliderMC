@@ -1,10 +1,10 @@
 package xyz.article.api.plugin;
 
 import xyz.article.api.Server;
-import xyz.article.api.event.Event;
 import xyz.article.api.event.EventManager;
 
 import java.io.File;
+import java.net.URLClassLoader;
 
 public abstract class SliderPlugin implements Plugin {
     private File dataFolder;
@@ -13,6 +13,7 @@ public abstract class SliderPlugin implements Plugin {
     private Server server;
     private EventManager eventManager;
     private String name;
+    private URLClassLoader classLoader;
 
     @Override
     public File getDataFolder () {
@@ -66,6 +67,15 @@ public abstract class SliderPlugin implements Plugin {
 
     public void setName (String name) {
         this.name = name;
+    }
+
+    @Override
+    public URLClassLoader getClassLoader () {
+        return classLoader;
+    }
+
+    public void setClassLoader (URLClassLoader classLoader) {
+        this.classLoader = classLoader;
     }
 
     public abstract void onEnabled ();
