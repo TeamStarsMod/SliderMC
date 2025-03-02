@@ -42,26 +42,7 @@ public class ChunkData {
         this.chunkSections = chunkSections;
         this.heightMap = heightMap;
         this.blockEntityInfos = blockEntityInfos;
-        // 天空亮度15
-        // 创建标记所有 Y 层需要天空光照更新的 BitSet
-        BitSet skyYMask = new BitSet(24);
-        skyYMask.set(0, 24, true); // 标记所有 Y 层
-
-        List<byte[]> skyUpdates = new ArrayList<>(24);
-        for (int y = 0; y < 24; y++) {
-            byte[] layerData = new byte[2048];
-            Arrays.fill(layerData, (byte) 0xFF);
-            skyUpdates.add(layerData);
-        }
-
-        this.lightUpdateData = new LightUpdateData(
-                skyYMask, // 标记需要更新的 Y 层
-                new BitSet(), // 方块光照 Y 层掩码
-                new BitSet(), // 空天空光照 Y 层掩码
-                new BitSet(), // 空方块光照 Y 层掩码
-                skyUpdates,   // 天空光照数据
-                new ArrayList<>() // 方块光照数据
-        );
+        this.lightUpdateData = lightUpdateData;
     }
 
     /**
