@@ -10,7 +10,6 @@ import org.geysermc.mcprotocollib.protocol.MinecraftConstants;
 import org.geysermc.mcprotocollib.protocol.ServerLoginHandler;
 import org.geysermc.mcprotocollib.protocol.data.game.PlayerListEntry;
 import org.geysermc.mcprotocollib.protocol.data.game.PlayerListEntryAction;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.GameMode;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.PlayerSpawnInfo;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.type.EntityType;
@@ -25,9 +24,9 @@ import xyz.article.api.entities.EntityID;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.inventory.PlayerInventory;
 import xyz.article.api.world.chunk.ChunkData;
-import xyz.article.api.world.chunk.ChunkPos;
 import xyz.article.api.world.worldgen.WorldGenerator;
 import xyz.article.packets.ClientboundServerBrandPacket;
+import xyz.article.world.OverWorldGenerator;
 
 import java.util.*;
 
@@ -80,13 +79,10 @@ public class LoginHandler implements ServerLoginHandler {
                 }
             }
         }*/
-        WorldGenerator generator = new WorldGenerator(12345L);
-        ChunkData[][] world = generator.generateWorld();
         for (int i = -6; i < 6; i++) {
             for (int l = -6; l < 6; l++) {
-                ChunkData chunkData = world[i + 6][l + 6];
+                ChunkData chunkData = player.getWorld().getChunkDataMap().get(Vector2i.from(i, l));
                 session.send(chunkData.getPacket());
-                player.getWorld().getChunkDataMap().put(chunkData.getChunkPos().pos(), chunkData);
             }
         }
         RunningData.globalSessions.add(session);

@@ -33,6 +33,7 @@ import xyz.article.event.EventManagerInstant;
 import xyz.article.handlers.LoginHandler;
 import xyz.article.handlers.ServerInfoBuildHandler;
 import xyz.article.plugin.PluginManagerInstant;
+import xyz.article.world.OverWorldGenerator;
 
 import java.io.File;
 import java.util.List;
@@ -96,7 +97,7 @@ public class MinecraftServer implements Server {
         });
 
         BlockItemMap.writeMap();
-        RunningData.worldMap.put(Key.key("minecraft:overworld"), new World(Key.key("minecraft:overworld")));
+        RunningData.worldMap.put(Key.key("minecraft:overworld"), new World(Key.key("minecraft:overworld"), new OverWorldGenerator(114514L)));
         Register.register();
         pluginManager.loadAllJarInFolder(new File("./plugins"));
         server.bind();

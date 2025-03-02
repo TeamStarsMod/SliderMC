@@ -132,4 +132,12 @@ public class Player {
     public Hand getLeftHand() {
         return leftHand;
     }
+
+    /**
+     * 我只是假定它是4
+     * @return 视野距离
+     */
+    public int getViewDistance () {
+        return 4;
+    }
 }

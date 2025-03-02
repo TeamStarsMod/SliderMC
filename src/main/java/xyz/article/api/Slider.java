@@ -46,10 +46,17 @@ public class Slider {
         int chunkZ = z >> 4;
         return new ChunkPos(world, Vector2i.from(chunkX, chunkZ));
     }
+
     public static ChunkPos getChunkPos(BlockPos blockPos) {
         int chunkX = blockPos.pos().getX() >> 4;
         int chunkZ = blockPos.pos().getZ() >> 4;
         return new ChunkPos(blockPos.world(), Vector2i.from(chunkX, chunkZ));
+    }
+
+    public static ChunkPos getChunkPos (Player player) {
+        int chunkX = (int) player.getX() >> 4;
+        int chunkZ = (int) player.getZ() >> 4;
+        return new ChunkPos(player.getWorld(), Vector2i.from(chunkX, chunkZ));
     }
 
     public static int getChunkSectionIndex(int y) {

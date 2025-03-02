@@ -1,5 +1,6 @@
 package xyz.article.packetprocessor;
 
+import org.cloudburstmc.math.vector.Vector2i;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.packet.Packet;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.Effect;
@@ -11,8 +12,12 @@ import xyz.article.RunningData;
 import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.packetprocessor.PacketProcessor;
+import xyz.article.api.world.World;
+import xyz.article.api.world.chunk.ChunkData;
+import xyz.article.api.world.chunk.ChunkPos;
 
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MovePlayerPosPacketProcessor implements PacketProcessor {
     @Override
@@ -42,6 +47,18 @@ public class MovePlayerPosPacketProcessor implements PacketProcessor {
                     session.send(new ClientboundUpdateMobEffectPacket(player.getEntityId(), Effect.BLINDNESS, 255, 30, true, false, false, false));
                     session.send(new ClientboundPlayerPositionPacket(playerPosPacket.getX(), -400d, playerPosPacket.getZ(), player.getYaw(), player.getPitch(), new Random().nextInt()));
                 }
+
+                int viewDistance = player.getViewDistance();
+                ChunkPos chunkPos = Slider.getChunkPos(player);
+                World world = player.getWorld();
+                ConcurrentHashMap<Vector2i, ChunkData> chunkDataMap = world.getChunkDataMap();
+                ChunkData currentChunk = chunkDataMap.get(chunkPos.pos());
+                if (currentChunk == null) {
+                    currentChunk = world.getGenerator().generateChunk(chunkPos);
+                    world.getChunkDataMap().put(chunkPos.pos(), currentChunk);
+                }
+                player.sendPacket(currentChunk.getPacket());
+                player.getWorld().viewChunkForPlayer(player);
             }
         }
     }
