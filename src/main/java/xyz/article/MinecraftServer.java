@@ -23,10 +23,12 @@ import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.event.EventManager;
 import xyz.article.api.packetprocessor.PacketProcessor;
+import xyz.article.api.plugin.PluginManager;
 import xyz.article.api.world.World;
 import xyz.article.event.EventManagerInstant;
 import xyz.article.handlers.LoginHandler;
 import xyz.article.handlers.ServerInfoBuildHandler;
+import xyz.article.plugin.PluginManagerInstant;
 
 import java.util.List;
 import java.util.Objects;
@@ -34,12 +36,14 @@ import java.util.Objects;
 public class MinecraftServer {
     private static MyTCPServer server;
     public static EventManager eventManager;
+    public static PluginManager pluginManager;
     private static final Logger log = LoggerFactory.getLogger(MinecraftServer.class);
 
     public static void main(String[] args) {
         long start = System.currentTimeMillis();
         server = new MyTCPServer("0.0.0.0", 25565, MinecraftProtocol::new);
         eventManager = new EventManagerInstant();
+        pluginManager = new PluginManagerInstant();
         SessionService sessionService = new SessionService();
         sessionService.setProxy(null);
         server.setGlobalFlag(MinecraftConstants.SESSION_SERVICE_KEY, sessionService);

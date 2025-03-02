@@ -1,9 +1,12 @@
 package xyz.article.api;
 
 import org.geysermc.mcprotocollib.network.Session;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import xyz.article.MinecraftServer;
 import xyz.article.RunningData;
 import xyz.article.api.entities.player.Player;
+import xyz.article.api.event.EventManager;
 
 public class Slider {
     /**
@@ -26,5 +29,9 @@ public class Slider {
             else if (globalPlayer.getProfile().getId().toString().equals(name)) return globalPlayer;
         }
         return null;
+    }
+
+    public static @NotNull EventManager getEventManager () {
+        return MinecraftServer.eventManager;
     }
 }

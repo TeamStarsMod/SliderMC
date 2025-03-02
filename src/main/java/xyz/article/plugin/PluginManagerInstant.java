@@ -8,6 +8,7 @@ import java.io.File;
 public class PluginManagerInstant implements PluginManager {
     @Override
     public Plugin loadPlugin(File file) {
+        ClassLoader clazzLoader = PluginManagerInstant.class.getClassLoader().getParent();
         return null;
     }
 
