@@ -33,6 +33,7 @@ import xyz.article.handlers.LoginHandler;
 import xyz.article.handlers.ServerInfoBuildHandler;
 import xyz.article.plugin.PluginManagerInstant;
 
+import java.io.File;
 import java.util.List;
 import java.util.Objects;
 
@@ -95,6 +96,7 @@ public class MinecraftServer implements Server {
 
         RunningData.worldMap.put(Key.key("minecraft:overworld"), new World(Key.key("minecraft:overworld")));
         Register.register();
+        pluginManager.loadAllJarInFolder(new File("./plugins"));
         server.bind();
         log.info("启动完成，用时 {}ms，键入help来获取帮助！", System.currentTimeMillis() - start);
     }

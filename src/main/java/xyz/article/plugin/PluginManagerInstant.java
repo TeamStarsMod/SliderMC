@@ -16,20 +16,34 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PluginManagerInstant implements PluginManager {
     private static final Logger log = LoggerFactory.getLogger(PluginManagerInstant.class);
-    private Map<String, SliderPlugin> plugins;
-    private boolean isInited = false;
+    private final Map<String, SliderPlugin> plugins;
+    private final List<Plugin> apiPlugins;
 
-    public void init () {
-        if (isInited) throw new RuntimeException("插件管理器已经初始化完成了！");
-        else {
-            isInited = true;
-            plugins = new ConcurrentHashMap<>();
+    public PluginManagerInstant() {
+        this.plugins = new ConcurrentHashMap<>();
+        this.apiPlugins = new ArrayList<>();
+    }
+
+    @Override
+    public void loadAllJarInFolder(File file) {
+        if (file.mkdir()) log.info("正在创建 {} 文件夹", file.getName());
+        File[] files = file.listFiles();
+        if (files == null) return;
+        for (File file1 : files) {
+            if (file1.getName().endsWith(".jar")) loadPlugin(file1);
         }
+    }
+
+    @Override
+    public List<Plugin> getPlugins() {
+        return apiPlugins;
     }
 
     @Override
@@ -37,7 +51,8 @@ public class PluginManagerInstant implements PluginManager {
         ClassLoader clazzLoader = PluginManagerInstant.class.getClassLoader().getParent();
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{file.toURI().toURL()}, clazzLoader)) {
             try (InputStream plugin_yml = classLoader.getResourceAsStream("slider.yml")) {
-                if (plugin_yml == null) throw new IncompletePluginException("无法加载jar " + file.getName() + "，因为该jar没有slider.yml！");
+                if (plugin_yml == null)
+                    throw new IncompletePluginException("无法加载jar " + file.getName() + "，因为该jar没有slider.yml！");
                 Yaml yaml = new Yaml();
                 Map<String, Object> map = yaml.load(plugin_yml);
                 String main_clazz = (String) map.get("main-class");
@@ -54,6 +69,7 @@ public class PluginManagerInstant implements PluginManager {
                 sliderPlugin.setClassLoader(classLoader);
                 sliderPlugin.onEnabled();
                 plugins.put(name, sliderPlugin);
+                apiPlugins.add(sliderPlugin);
                 return sliderPlugin;
             } catch (Exception e) {
                 ExceptionUtils.exceptionHandler(log, e);
@@ -71,6 +87,8 @@ public class PluginManagerInstant implements PluginManager {
                 SliderPlugin sliderPlugin = plugins.get(plugin.getName());
                 sliderPlugin.onDisabled();
                 sliderPlugin.getClassLoader().close();
+                plugins.remove(sliderPlugin.getName());
+                apiPlugins.remove(plugin);
             } catch (IOException e) {
                 ExceptionUtils.exceptionHandler(log, e);
             }
@@ -84,6 +102,8 @@ public class PluginManagerInstant implements PluginManager {
                 SliderPlugin sliderPlugin = plugins.get(name);
                 sliderPlugin.onDisabled();
                 sliderPlugin.getClassLoader().close();
+                plugins.remove(name);
+                apiPlugins.remove(sliderPlugin);
             } catch (IOException e) {
                 ExceptionUtils.exceptionHandler(log, e);
             }
