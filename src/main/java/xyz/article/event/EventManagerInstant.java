@@ -1,13 +1,11 @@
 package xyz.article.event;
 
-import net.kyori.adventure.text.Component;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.api.event.Event;
 import xyz.article.api.event.EventExecutor;
 import xyz.article.api.event.EventManager;
 import xyz.article.api.event.Listener;
-import xyz.article.api.event.events.ClientPingEvent;
 import xyz.article.api.utils.ExceptionUtils;
 
 import java.lang.reflect.InvocationTargetException;
