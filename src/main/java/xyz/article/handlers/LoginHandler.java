@@ -45,7 +45,7 @@ public class LoginHandler implements ServerLoginHandler {
         // Player Login Logic
         GameProfile profile = session.getFlag(MinecraftConstants.PROFILE_KEY);
         int entityId = EntityID.getRandomEntityId();
-        Player player = new Player(entityId, session, profile, new PlayerInventory(), new World(Key.key("minecraft:overworld")), 8.5, 64, 8.5, 0, 0);
+        Player player = new Player(entityId, session, profile, new PlayerInventory(), RunningData.worldMap.get(Key.key("minecraft:overworld")), 8.5, 64, 8.5, 0, 0);
         RunningData.globalEntities.add(player.getEntityId());
         session.send(new ClientboundLoginPacket(player.getEntityId(), false, new Key[]{ Key.key("minecraft:overworld") }, 100, 10, 16, false, false, false, new PlayerSpawnInfo(0, Key.key("minecraft:overworld"), 100, GameMode.CREATIVE, GameMode.CREATIVE, false, false, null, 100), true));
         session.send(new ClientboundServerBrandPacket("SliderMC - Rebuild").getPacket());
@@ -58,7 +58,7 @@ public class LoginHandler implements ServerLoginHandler {
         }
         for (int i = -6; i < 6; i++) {
             for (int l = -6; l < 6; l++) {
-                session.send(new ChunkData(new ChunkPos(new World(Key.key("minecraft:overworld")), Vector2i.from(i, l)), chunkSections).getPacket());
+                session.send(new ChunkData(new ChunkPos(RunningData.worldMap.get(Key.key("minecraft:overworld")), Vector2i.from(i, l)), chunkSections).getPacket());
             }
         }
         RunningData.globalSessions.add(session);
@@ -103,6 +103,6 @@ public class LoginHandler implements ServerLoginHandler {
                 session.send(new ClientboundAddEntityPacket(player1.getEntityId(), player1.getProfile().getId(), EntityType.PLAYER, player1.getX(), player1.getY(), player1.getZ(), player1.getYaw(), player1.getPitch(), 0));
             }
         }
-        log.info("玩家 {} 加入了游戏", profile.getName());
+        log.info("{} 加入了游戏", profile.getName());
     }
 }

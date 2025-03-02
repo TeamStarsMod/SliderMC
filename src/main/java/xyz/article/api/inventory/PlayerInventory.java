@@ -2,6 +2,9 @@ package xyz.article.api.inventory;
 
 import org.geysermc.mcprotocollib.protocol.data.game.item.ItemStack;
 
+/**
+ * 玩家物品栏类，继承自基础物品栏类
+ */
 public class PlayerInventory extends Inventory {
     private ItemStack draggingItem;
 

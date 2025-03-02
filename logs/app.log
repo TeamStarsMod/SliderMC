@@ -1,14 +1,2 @@
-[ INFO ] [ tcpServerSession-3-1 | 2025-03-01 22:18:31 ] <-- kubernetes.docker.internal/127.0.0.1:13249 has pinged -->
-[ INFO ] [ tcpServerSession-3-2 | 2025-03-01 22:18:33 ] <-- kubernetes.docker.internal/127.0.0.1:13259 has pinged -->
-[ INFO ] [ tcpServerSession-3-3 | 2025-03-01 22:18:50 ] 玩家 Neko110923 加入了游戏
-[ INFO ] [ tcpServerSession-3-4 | 2025-03-01 22:18:52 ] <-- kubernetes.docker.internal/127.0.0.1:13336 has pinged -->
-[ INFO ] [ tcpServerSession-3-5 | 2025-03-01 22:19:41 ] <-- kubernetes.docker.internal/127.0.0.1:13514 has pinged -->
-[ INFO ] [ nioEventLoopGroup-2-4 | 2025-03-01 22:19:48 ] Neko110923 离开了游戏
-[ INFO ] [ tcpServerSession-3-6 | 2025-03-01 22:19:48 ] <-- kubernetes.docker.internal/127.0.0.1:13541 has pinged -->
-[ INFO ] [ tcpServerSession-3-7 | 2025-03-01 22:19:49 ] <-- kubernetes.docker.internal/127.0.0.1:13548 has pinged -->
-[ INFO ] [ tcpServerSession-3-8 | 2025-03-01 22:20:12 ] <-- kubernetes.docker.internal/127.0.0.1:13636 has pinged -->
-[ INFO ] [ tcpServerSession-3-9 | 2025-03-01 22:21:03 ] <-- kubernetes.docker.internal/127.0.0.1:13828 has pinged -->
-[ INFO ] [ tcpServerSession-3-10 | 2025-03-01 22:21:09 ] <-- kubernetes.docker.internal/127.0.0.1:13861 has pinged -->
-[ INFO ] [ tcpServerSession-3-11 | 2025-03-01 22:21:13 ] <-- kubernetes.docker.internal/127.0.0.1:13874 has pinged -->
-[ INFO ] [ tcpServerSession-3-12 | 2025-03-01 22:22:52 ] <-- kubernetes.docker.internal/127.0.0.1:14247 has pinged -->
-[ INFO ] [ tcpServerSession-3-13 | 2025-03-01 22:23:00 ] <-- kubernetes.docker.internal/127.0.0.1:14279 has pinged -->
+[ INFO ] [ main | 2025-03-02 12:39:39 ] 世界 minecraft:overworld Tick循环已开始
+[ INFO ] [ tcpServerSession-3-1 | 2025-03-02 12:39:47 ] 玩家 Neko110923 加入了游戏

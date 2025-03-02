@@ -18,6 +18,19 @@ public class Player {
     private float anglePitch;
     private final int entityId;
 
+    /**
+     * 创建一个新玩家实例
+     * @param entityId 此玩家的entityId
+     * @param session 此玩家的session实例
+     * @param profile 此玩家的GameProfile实例
+     * @param playerInventory 此玩家的物品栏
+     * @param world 此玩家初始化时所在的世界(此玩家将会自动被添加到此世界)
+     * @param x 此玩家初始化时的x坐标
+     * @param y 此玩家初始化时的y坐标
+     * @param z 此玩家初始化时的z坐标
+     * @param yaw 此玩家初始化时的yaw角度
+     * @param pitch 此玩家初始化时的pitch角度
+     */
     public Player(int entityId, Session session, GameProfile profile, PlayerInventory playerInventory, World world, double x, double y, double z, float yaw, float pitch) {
         this.session = session;
         this.profile = profile;
