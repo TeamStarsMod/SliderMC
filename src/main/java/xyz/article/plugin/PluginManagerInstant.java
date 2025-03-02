@@ -48,7 +48,7 @@ public class PluginManagerInstant implements PluginManager {
 
     @Override
     public Plugin loadPlugin(File file) {
-        ClassLoader clazzLoader = PluginManagerInstant.class.getClassLoader().getParent();
+        ClassLoader clazzLoader = PluginManagerInstant.class.getClassLoader();
         try (URLClassLoader classLoader = new URLClassLoader(new URL[]{file.toURI().toURL()}, clazzLoader)) {
             try (InputStream plugin_yml = classLoader.getResourceAsStream("slider.yml")) {
                 if (plugin_yml == null)
@@ -57,7 +57,7 @@ public class PluginManagerInstant implements PluginManager {
                 Map<String, Object> map = yaml.load(plugin_yml);
                 String main_clazz = (String) map.get("main-class");
                 String name = (String) map.get("name");
-                String version = (String) map.get("version");
+                String version = String.valueOf(map.get("version"));
                 Class<?> main_class = classLoader.loadClass(main_clazz);
                 SliderPlugin sliderPlugin = (SliderPlugin) main_class.getDeclaredConstructor().newInstance();
                 sliderPlugin.setPluginManager(MinecraftServer.pluginManager);

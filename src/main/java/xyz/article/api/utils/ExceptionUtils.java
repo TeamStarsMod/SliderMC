@@ -10,6 +10,6 @@ public class ExceptionUtils {
         StringWriter writer = new StringWriter();
         PrintWriter pw = new PrintWriter(writer);
         cause.printStackTrace(pw);
-        logger.error("发生异常：{}", pw);
+        logger.error("发生异常：{}", writer);
     }
 }
