@@ -26,6 +26,7 @@ import xyz.article.api.entities.player.Player;
 import xyz.article.api.inventory.PlayerInventory;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
+import xyz.article.api.world.worldgen.WorldGenerator;
 import xyz.article.packets.ClientboundServerBrandPacket;
 
 import java.util.*;
@@ -44,6 +45,7 @@ public class LoginHandler implements ServerLoginHandler {
         RunningData.globalEntities.add(player.getEntityId());
         session.send(new ClientboundLoginPacket(player.getEntityId(), false, new Key[]{ Key.key("minecraft:overworld") }, 100, 10, 16, false, false, false, new PlayerSpawnInfo(0, player.getWorld().getKey(), 100, player.getGameMode(), player.getGameMode(), false, false, null, 100), true));
         session.send(new ClientboundServerBrandPacket("SliderMC - Rebuild").getPacket());
+        /*
         for (int i = -6; i < 6; i++) {
             for (int l = -6; l < 6; l++) {
                 if (player.getWorld().getChunkDataMap().get(Vector2i.from(i, l)) == null) {
@@ -76,6 +78,15 @@ public class LoginHandler implements ServerLoginHandler {
                 } else {
                     session.send(player.getWorld().getChunkDataMap().get(Vector2i.from(i, l)).getPacket());
                 }
+            }
+        }*/
+        WorldGenerator generator = new WorldGenerator(12345L);
+        ChunkData[][] world = generator.generateWorld();
+        for (int i = -6; i < 6; i++) {
+            for (int l = -6; l < 6; l++) {
+                ChunkData chunkData = world[i + 6][l + 6];
+                session.send(chunkData.getPacket());
+                player.getWorld().getChunkDataMap().put(chunkData.getChunkPos().pos(), chunkData);
             }
         }
         RunningData.globalSessions.add(session);
