@@ -8,6 +8,7 @@ import xyz.article.api.event.EventExecutor;
 import xyz.article.api.event.EventManager;
 import xyz.article.api.event.Listener;
 import xyz.article.api.event.events.ClientPingEvent;
+import xyz.article.api.utils.ExceptionUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -36,6 +37,7 @@ public class EventManagerInstant implements EventManager {
                             //获取实参
                             Class<?> firstParameterClass = parameters[0].getType();
                             //检查参数并执行
+                            method.setAccessible(true);
                             if (firstParameterClass.isInstance(event)) method.invoke(listener, event);
                         } else {
                             throw new IllegalArgumentException("事件监听器 " + listener.getClass().getName() + " 的编写格式异常！");
@@ -44,6 +46,7 @@ public class EventManagerInstant implements EventManager {
                 }
             } catch (InvocationTargetException | IllegalAccessException e) {
                 log.error("在执行监听器 {} 的时候发生异常 {}", listener.getClass().getName(), e);
+                ExceptionUtils.exceptionHandler(log, e);
             }
         }
         return event;
