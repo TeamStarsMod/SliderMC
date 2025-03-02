@@ -25,6 +25,7 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spaw
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
+import xyz.article.api.entities.EntityID;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.inventory.PlayerInventory;
 import xyz.article.api.world.World;
@@ -34,12 +35,19 @@ import xyz.article.packets.ClientboundServerBrandPacket;
 
 import java.util.*;
 
+/**
+ * 玩家登入逻辑类
+ */
 public class LoginHandler implements ServerLoginHandler {
     private final Logger log = LoggerFactory.getLogger(LoginHandler.class);
     @Override
     public void loggedIn (Session session) {
         // Player Login Logic
-        session.send(new ClientboundLoginPacket(0, false, new Key[]{ Key.key("minecraft:overworld") }, 100, 10, 16, false, false, false, new PlayerSpawnInfo(0, Key.key("minecraft:overworld"), 100, GameMode.CREATIVE, GameMode.CREATIVE, false, false, null, 100), true));
+        GameProfile profile = session.getFlag(MinecraftConstants.PROFILE_KEY);
+        int entityId = EntityID.getRandomEntityId();
+        Player player = new Player(entityId, session, profile, new PlayerInventory(), new World(Key.key("minecraft:overworld")), 8.5, 64, 8.5, 0, 0);
+        RunningData.globalEntities.add(player.getEntityId());
+        session.send(new ClientboundLoginPacket(player.getEntityId(), false, new Key[]{ Key.key("minecraft:overworld") }, 100, 10, 16, false, false, false, new PlayerSpawnInfo(0, Key.key("minecraft:overworld"), 100, GameMode.CREATIVE, GameMode.CREATIVE, false, false, null, 100), true));
         session.send(new ClientboundServerBrandPacket("SliderMC - Rebuild").getPacket());
         ChunkSection[] chunkSections = new ChunkSection[24];
         for (int i = 0; i < 24; i++) {
@@ -50,16 +58,13 @@ public class LoginHandler implements ServerLoginHandler {
         }
         for (int i = -6; i < 6; i++) {
             for (int l = -6; l < 6; l++) {
-                session.send(new ChunkData(new ChunkPos(new World(), Vector2i.from(i, l)), chunkSections).getPacket());
+                session.send(new ChunkData(new ChunkPos(new World(Key.key("minecraft:overworld")), Vector2i.from(i, l)), chunkSections).getPacket());
             }
         }
-
-        GameProfile profile = session.getFlag(MinecraftConstants.PROFILE_KEY);
-        Player player = new Player(new Random().nextInt(), session, profile, new PlayerInventory(), new World(), 8.5, 64, 8.5, 0, 0);
-        RunningData.sessions.add(session);
-        RunningData.sessionPlayerMap.put(session, player);
-        RunningData.players.add(player);
-        for (Session session1 : RunningData.sessions) {
+        RunningData.globalSessions.add(session);
+        RunningData.globalSessionPlayerMap.put(session, player);
+        RunningData.globalPlayers.add(player);
+        for (Session session1 : RunningData.globalSessions) {
             session1.send(new ClientboundSystemChatPacket(Component.text(profile.getName() + " 加入了游戏").color(NamedTextColor.YELLOW), false));
             EnumSet<PlayerListEntryAction> actions = EnumSet.of(PlayerListEntryAction.ADD_PLAYER, PlayerListEntryAction.UPDATE_GAME_MODE, PlayerListEntryAction.UPDATE_LATENCY, PlayerListEntryAction.UPDATE_LISTED);
             session1.send(new ClientboundPlayerInfoUpdatePacket(actions, new PlayerListEntry[]{ new PlayerListEntry(
@@ -77,7 +82,7 @@ public class LoginHandler implements ServerLoginHandler {
             session1.send(new ClientboundAddEntityPacket(player.getEntityId(), profile.getId(), EntityType.PLAYER, player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch(), 0));
         }
         List<PlayerListEntry> list = new ArrayList<>();
-        for (Player player1 : RunningData.players) {
+        for (Player player1 : RunningData.globalPlayers) {
             list.add(new PlayerListEntry(
                     player1.getProfile().getId(),
                     player1.getProfile(),
@@ -93,7 +98,7 @@ public class LoginHandler implements ServerLoginHandler {
         }
         EnumSet<PlayerListEntryAction> actions1 = EnumSet.of(PlayerListEntryAction.ADD_PLAYER, PlayerListEntryAction.UPDATE_GAME_MODE, PlayerListEntryAction.UPDATE_LATENCY, PlayerListEntryAction.UPDATE_LISTED);
         session.send(new ClientboundPlayerInfoUpdatePacket(actions1, list.toArray(new PlayerListEntry[0])));
-        for (Player player1 : RunningData.players) {
+        for (Player player1 : RunningData.globalPlayers) {
             if (!player1.equals(player)) {
                 session.send(new ClientboundAddEntityPacket(player1.getEntityId(), player1.getProfile().getId(), EntityType.PLAYER, player1.getX(), player1.getY(), player1.getZ(), player1.getYaw(), player1.getPitch(), 0));
             }

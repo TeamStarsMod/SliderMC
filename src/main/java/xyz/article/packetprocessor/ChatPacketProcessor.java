@@ -19,7 +19,7 @@ public class ChatPacketProcessor implements PacketProcessor {
     public void process(Session session, Packet packet) {
         if (packet instanceof ServerboundChatPacket chatPacket) {
             GameProfile profile = Slider.getPlayer(session).getProfile();
-            for (Session session1 : RunningData.sessions) {
+            for (Session session1 : RunningData.globalSessions) {
                 session1.send(new ClientboundSystemChatPacket(Component.text("<" + profile.getName() + "> " + chatPacket.getMessage()), false));
             }
             log.info("{}: {}", profile.getName(), chatPacket.getMessage());

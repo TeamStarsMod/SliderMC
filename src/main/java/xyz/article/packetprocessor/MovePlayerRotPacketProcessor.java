@@ -22,7 +22,7 @@ public class MovePlayerRotPacketProcessor implements PacketProcessor {
                 player.setYaw(newYaw);
                 player.setPitch(newPitch);
 
-                for (Session session1 : RunningData.sessions) {
+                for (Session session1 : RunningData.globalSessions) {
                     if (!session1.equals(session)) {
                         session1.send(new ClientboundRotateHeadPacket(player.getEntityId(), newYaw));
                         session1.send(new ClientboundMoveEntityRotPacket(player.getEntityId(), rotPacket.getYaw(), rotPacket.getPitch(), rotPacket.isOnGround()));

@@ -3,12 +3,21 @@ package xyz.article.api.inventory;
 import org.geysermc.mcprotocollib.protocol.data.game.inventory.ContainerType;
 import org.geysermc.mcprotocollib.protocol.data.game.item.ItemStack;
 
+/**
+ * 基础物品栏类
+ */
 public class Inventory {
     private int size;
     private ItemStack[] items;
     private int containerId;
     private ContainerType containerType;
 
+    /**
+     * 创建一个新的物品栏
+     * @param containerId 物品栏ID
+     * @param size 物品栏的大小
+     * @param containerType 物品栏的类别
+     */
     public Inventory(int containerId, int size, ContainerType containerType) {
         this.containerId = containerId;
         this.size = size;

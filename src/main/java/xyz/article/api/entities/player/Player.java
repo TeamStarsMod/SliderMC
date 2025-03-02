@@ -29,6 +29,8 @@ public class Player {
         this.angleYaw = yaw;
         this.anglePitch = pitch;
         this.entityId = entityId;
+
+        world.getPlayers().add(this);
     }
 
     public void sendPacket (Packet packet) {

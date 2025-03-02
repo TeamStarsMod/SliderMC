@@ -1,5 +1,6 @@
 package xyz.article;
 
+import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.geysermc.mcprotocollib.auth.GameProfile;
@@ -13,24 +14,20 @@ import org.geysermc.mcprotocollib.network.packet.Packet;
 import org.geysermc.mcprotocollib.network.tcp.TcpServer;
 import org.geysermc.mcprotocollib.protocol.MinecraftConstants;
 import org.geysermc.mcprotocollib.protocol.MinecraftProtocol;
-import org.geysermc.mcprotocollib.protocol.codec.MinecraftCodec;
-import org.geysermc.mcprotocollib.protocol.data.status.PlayerInfo;
-import org.geysermc.mcprotocollib.protocol.data.status.ServerStatusInfo;
-import org.geysermc.mcprotocollib.protocol.data.status.VersionInfo;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundPlayerInfoRemovePacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundSystemChatPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundRemoveEntitiesPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.api.Slider;
+import xyz.article.api.entities.player.Player;
 import xyz.article.api.event.EventManager;
-import xyz.article.api.event.events.ClientPingEvent;
 import xyz.article.api.packetprocessor.PacketProcessor;
+import xyz.article.api.world.World;
 import xyz.article.event.EventManagerInstant;
 import xyz.article.handlers.LoginHandler;
 import xyz.article.handlers.ServerInfoBuildHandler;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -48,26 +45,28 @@ public class MinecraftServer {
         server.setGlobalFlag(MinecraftConstants.ENCRYPT_CONNECTION, false);
         server.setGlobalFlag(MinecraftConstants.SHOULD_AUTHENTICATE, false);
         server.setGlobalFlag(MinecraftConstants.SERVER_COMPRESSION_THRESHOLD, 256);
-        server.setGlobalFlag(MinecraftConstants.SERVER_INFO_BUILDER_KEY, new ServerInfoBuildHandler());
 
+        server.setGlobalFlag(MinecraftConstants.SERVER_INFO_BUILDER_KEY, new ServerInfoBuildHandler());
         server.setGlobalFlag(MinecraftConstants.SERVER_LOGIN_HANDLER_KEY, new LoginHandler());
 
         server.addListener(new ServerAdapter() {
             @Override
             public void sessionRemoved(SessionRemovedEvent event) {
-                if (RunningData.sessions.contains(event.getSession())) {
+                if (RunningData.globalSessions.contains(event.getSession())) {
                     GameProfile profile = event.getSession().getFlag(MinecraftConstants.PROFILE_KEY);
                     log.info("{} 离开了游戏", profile.getName());
-                    RunningData.sessions.remove(event.getSession());
+                    RunningData.globalSessions.remove(event.getSession());
                     Component component = Component.text(profile.getName() + " 退出了游戏").color(NamedTextColor.YELLOW);
-                    for (Session session1 : RunningData.sessions) {
+                    for (Session session1 : RunningData.globalSessions) {
                         session1.send(new ClientboundSystemChatPacket(component, false));
                         session1.send(new ClientboundRemoveEntitiesPacket(new int[]{Objects.requireNonNull(Slider.getPlayer(event.getSession())).getEntityId()}));
                         session1.send(new ClientboundPlayerInfoRemovePacket(List.of(profile.getId())));
                     }
-                    RunningData.players.remove(Slider.getPlayer(event.getSession()));
-                    RunningData.sessions.remove(event.getSession());
-                    RunningData.sessionPlayerMap.remove(event.getSession());
+                    Player player = Slider.getPlayer(event.getSession());
+                    RunningData.globalPlayers.remove(player);
+                    RunningData.globalSessions.remove(event.getSession());
+                    RunningData.globalSessionPlayerMap.remove(event.getSession());
+                    RunningData.globalEntities.remove(player.getEntityId());
                 }
             }
 
@@ -84,6 +83,7 @@ public class MinecraftServer {
             }
         });
 
+        RunningData.worldMap.put(Key.key("minecraft:overworld"), new World(Key.key("minecraft:overworld")));
         Register.register();
         server.bind();
     }

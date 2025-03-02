@@ -21,6 +21,9 @@ import java.util.List;
 
 import static xyz.article.MinecraftServer.eventManager;
 
+/**
+ * 玩家ping服务器逻辑类
+ */
 public class ServerInfoBuildHandler implements ServerInfoBuilder {
     private static final Logger log = LoggerFactory.getLogger(ServerInfoBuildHandler.class);
 
@@ -62,14 +65,14 @@ public class ServerInfoBuildHandler implements ServerInfoBuilder {
 
         Component gradientMOTD = builder.build();
         List<GameProfile> list = new ArrayList<>();
-        for (Player player : RunningData.players) {
+        for (Player player : RunningData.globalPlayers) {
             list.add(player.getProfile());
         }
-        PlayerInfo playerInfo = new PlayerInfo(100, RunningData.players.size(), list);
+        PlayerInfo playerInfo = new PlayerInfo(100, RunningData.globalPlayers.size(), list);
         VersionInfo versionInfo = new VersionInfo(MinecraftCodec.CODEC.getMinecraftVersion(), MinecraftCodec.CODEC.getProtocolVersion());
         byte[] icon = null;
         boolean enforcesSecureChat = false;
-        log.info("<-- {} has pinged -->", session.getRemoteAddress());
+        log.info("<-- {} has pinged -->", session.getRemoteAddress()); // 在玩家Ping服务器时，显示一条Ping消息
         ClientPingEvent event = new ClientPingEvent(gradientMOTD, playerInfo, versionInfo, icon, enforcesSecureChat);
         eventManager.callEvent(event);
         return new ServerStatusInfo(

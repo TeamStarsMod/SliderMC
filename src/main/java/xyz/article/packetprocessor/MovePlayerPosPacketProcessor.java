@@ -28,7 +28,7 @@ public class MovePlayerPosPacketProcessor implements PacketProcessor {
                 player.setY(playerPosPacket.getY());
                 player.setZ(playerPosPacket.getZ());
 
-                for (Session session1 : RunningData.sessions) {
+                for (Session session1 : RunningData.globalSessions) {
                     if (!session1.equals(session)) {
                         session1.send(new ClientboundMoveEntityPosPacket(player.getEntityId(), moveX, moveY, moveZ, playerPosPacket.isOnGround()));
                     }

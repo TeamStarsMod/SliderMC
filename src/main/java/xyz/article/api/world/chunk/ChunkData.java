@@ -80,31 +80,66 @@ public class ChunkData {
         this.lightUpdateData = new LightUpdateData(new BitSet(), new BitSet(), new BitSet(), new BitSet(), new ArrayList<>(), new ArrayList<>());
     }
 
+    /**
+     * 获取区块的位置
+     * @return 区块位置
+     */
     public ChunkPos getChunkPos() {
         return chunkPos;
     }
 
+    /**
+     * 获取子区块数组
+     * @return 子区块数组
+     */
     public ChunkSection[] getChunkSections() {
         return chunkSections;
     }
 
+    /**
+     * 获取高度图
+     * @return 高度图NbtMap数据
+     */
     public NbtMap getHeightMap() {
         return heightMap;
     }
+
+    /**
+     * 设置高度图数据
+     * @param heightMap 高度图数据
+     */
     public void setHeightMap(NbtMap heightMap) {
         this.heightMap = heightMap;
     }
 
+    /**
+     * 获取光照更新数据
+     * @return 光照更新数据
+     */
     public LightUpdateData getLightUpdateData() {
         return lightUpdateData;
     }
+
+    /**
+     * 设置光照更新数据
+     * @param lightUpdateData 光照更新数据
+     */
     public void setLightUpdateData(LightUpdateData lightUpdateData) {
         this.lightUpdateData = lightUpdateData;
     }
 
+    /**
+     * 获取方块实体数组
+     * @return 方块实体数组
+     */
     public BlockEntityInfo[] getBlockEntityInfos() {
         return blockEntityInfos;
     }
+
+    /**
+     * 设置方块实体数组
+     * @param blockEntityInfos 方块实体数组
+     */
     public void setBlockEntityInfos(BlockEntityInfo[] blockEntityInfos) {
         this.blockEntityInfos = blockEntityInfos;
     }

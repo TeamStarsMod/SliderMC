@@ -5,6 +5,9 @@ import org.geysermc.mcprotocollib.protocol.data.status.PlayerInfo;
 import org.geysermc.mcprotocollib.protocol.data.status.VersionInfo;
 import xyz.article.api.event.Event;
 
+/**
+ * 在玩家ping服务器时触发
+ */
 public class ClientPingEvent extends Event {
     public Component motd;
     public PlayerInfo playerInfo;
