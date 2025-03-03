@@ -97,7 +97,7 @@ public class MinecraftServer implements Server {
         });
 
         BlockItemMap.writeMap();
-        RunningData.worldMap.put(Key.key("minecraft:overworld"), new World(Key.key("minecraft:overworld"), new OverWorldGenerator(114514L)));
+        RunningData.worldMap.put(Key.key("minecraft:overworld"), new World(Key.key("minecraft:overworld"), new OverWorldGenerator(114514L, 0.01, 0.1)));
         Register.register();
         pluginManager.loadAllJarInFolder(new File("./plugins"));
         server.bind();
