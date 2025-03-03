@@ -1,57 +1,73 @@
 package xyz.article.world;
 
-import org.cloudburstmc.nbt.NbtMap;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
-import org.geysermc.mcprotocollib.protocol.data.game.level.block.BlockEntityInfo;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
 import xyz.article.api.world.worldgen.PerlinNoise;
 import xyz.article.api.world.worldgen.WorldGenerator;
 
 public class OverWorldGenerator extends WorldGenerator {
-    private static final int WORLD_HEIGHT = 384; // -64 to 320
-    private static final double NOISE_SCALE = 0.05; // 控制地形的平滑度，值越小地形越平滑
-    private static final double HEIGHT_MULTIPLIER = 32; // 控制地形的高度范围
-    private static final int SEA_LEVEL = 64; // 海平面高度
-    private static final int CHUNK_SIZE = 16;
 
-    private final PerlinNoise noise;
+    private final PerlinNoise perlinNoise;
 
     public OverWorldGenerator(long seed) {
         super(12);
-        this.noise = new PerlinNoise(seed);
+        this.perlinNoise = new PerlinNoise(seed);
     }
 
     @Override
     public ChunkData generateChunk(ChunkPos pos) {
-        ChunkSection[] chunkSections = new ChunkSection[24];
+        ChunkData chunkData = new ChunkData(pos);
+
         for (int i = 0; i < 24; i++) {
-            chunkSections[i] = new ChunkSection();
-            chunkSections[i].getBiomeData().set(1,1,1,1);
+            chunkData.getChunkSections()[i].getBiomeData().set(1,1,1,1);
         }
 
-        for (int x = 0; x < CHUNK_SIZE; x++) {
-            for (int z = 0; z < CHUNK_SIZE; z++) {
-                int worldX = pos.pos().getX() * CHUNK_SIZE + x;
-                int worldZ = pos.pos().getY() * CHUNK_SIZE + z;
+        // 遍历区块中的每个x,z坐标
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                // 计算全局坐标
+                int globalX = pos.pos().getX() * 16 + x;
+                int globalZ = pos.pos().getY() * 16 + z;
 
-                double height = noise.noise(worldX * NOISE_SCALE, 0, worldZ * NOISE_SCALE) * HEIGHT_MULTIPLIER + SEA_LEVEL;
+                // 使用柏林噪声生成地形高度
+                double noiseValue = perlinNoise.noise(globalX * 0.05, 0, globalZ * 0.05);
+                int height = (int) (noiseValue * 32 + 64); // 将噪声值映射到高度范围
 
-                for (int y = 0; y < WORLD_HEIGHT; y++) {
-                    int sectionIndex = y / 16;
-                    int sectionY = y % 16;
-
+                // 填充方块
+                for (int y = 0; y < 256; y++) {
                     if (y < height) {
-                        chunkSections[sectionIndex].setBlock(x, sectionY, z, 1); // 1 is stone
-                    } else if (y < SEA_LEVEL) {
-                        chunkSections[sectionIndex].setBlock(x, sectionY, z, 2); // 2 is water
+                        setBlock(chunkData.getChunkSections(), x, y, z, 9); // 假设所有方块都是草方块
                     } else {
-                        chunkSections[sectionIndex].setBlock(x, sectionY, z, 0); // 0 is air
+                        setBlock(chunkData.getChunkSections(), x, y, z, 0); // 其他部分填充空气
                     }
                 }
             }
         }
 
-        return new ChunkData(pos, chunkSections, NbtMap.EMPTY, new BlockEntityInfo[]{}, createLightUpdateData());
+        // 设置光照数据
+        chunkData.setLightUpdateData(createLightUpdateData());
+
+        return chunkData;
+    }
+
+    /**
+     * 在区块中设置方块
+     *
+     * @param chunkSections 区块的 ChunkSection 数组
+     * @param x             方块的 X 坐标
+     * @param y             方块的 Y 坐标
+     * @param z             方块的 Z 坐标
+     * @param blockId       方块的 ID
+     */
+    private void setBlock(ChunkSection[] chunkSections, int x, int y, int z, int blockId) {
+        if (x < 0 || x >= 16 || y < -63 || y >= 320 || z < 0 || z >= 16) return; // 确保坐标在区块范围内
+
+        int sectionIndex = y / 16;
+        int localY = y % 16;
+        ChunkSection section = chunkSections[sectionIndex];
+        if (section != null) {
+            section.setBlock(x, localY, z, blockId);
+        }
     }
 }
