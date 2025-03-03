@@ -1,11 +1,16 @@
 package xyz.article.api.entities.player;
 
+import org.cloudburstmc.math.vector.Vector2i;
 import org.geysermc.mcprotocollib.auth.GameProfile;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.packet.Packet;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.GameMode;
 import xyz.article.api.inventory.PlayerInventory;
 import xyz.article.api.world.World;
+import xyz.article.api.world.chunk.ChunkData;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Player {
     private final Session session;
@@ -20,6 +25,8 @@ public class Player {
     private final int entityId;
     private GameMode gameMode;
     private final Hand mainHand, leftHand;
+
+    private final Map<Vector2i, ChunkData> loadedChunks = new ConcurrentHashMap<>();
 
     /**
      * 创建一个新玩家实例
@@ -134,10 +141,14 @@ public class Player {
     }
 
     /**
-     * 我只是假定它是4
+     * 我只是假定它是8
      * @return 视野距离
      */
     public int getViewDistance () {
-        return 4;
+        return 8;
+    }
+
+    public Map<Vector2i, ChunkData> getLoadedChunks() {
+        return loadedChunks;
     }
 }

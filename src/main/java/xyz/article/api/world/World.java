@@ -118,41 +118,6 @@ public class World {
         }
     }
 
-    public void viewChunkForPlayer(Player player) {
-        int viewDistance = player.getViewDistance();
-        ChunkPos newChunkPos = Slider.getChunkPos(player);
-        int newPlayerChunkX = newChunkPos.pos().getX();
-        int newPlayerChunkZ = newChunkPos.pos().getY();
-
-        // 用于存储玩家新视野范围内的区块位置
-        Set<Vector2i> newViewableChunks = new HashSet<>();
-
-        // 计算新视野范围内的所有区块位置
-        for (int x = newPlayerChunkX - viewDistance; x <= newPlayerChunkX + viewDistance; x++) {
-            for (int z = newPlayerChunkZ - viewDistance; z <= newPlayerChunkZ + viewDistance; z++) {
-                newViewableChunks.add(Vector2i.from(x, z));
-            }
-        }
-
-        // 遍历现有的chunkDataMap，检查每个区块是否还在新视野范围内
-        for (Vector2i chunkPos : new ArrayList<>(chunkDataMap.keySet())) {
-            // 如果当前区块不在新视野范围内，则发送卸载包
-            if (!newViewableChunks.contains(chunkPos)) {
-                // 发送卸载区块的包给玩家
-                player.sendPacket(new ClientboundForgetLevelChunkPacket(chunkPos.getX(), chunkPos.getY()));
-            }
-        }
-
-        // 生成并发送新视野范围内的区块
-        for (Vector2i chunkPos : newViewableChunks) {
-            if (!chunkDataMap.containsKey(chunkPos)) {
-                chunkDataMap.put(chunkPos, generator.generateChunk(new ChunkPos(this, chunkPos)));
-            }
-            player.sendPacket(chunkDataMap.get(chunkPos).getPacket());
-        }
-    }
-
-
     public WorldGenerator getGenerator () {
         return generator;
     }

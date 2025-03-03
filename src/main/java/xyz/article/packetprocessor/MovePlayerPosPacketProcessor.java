@@ -47,18 +47,6 @@ public class MovePlayerPosPacketProcessor implements PacketProcessor {
                     session.send(new ClientboundUpdateMobEffectPacket(player.getEntityId(), Effect.BLINDNESS, 255, 30, true, false, false, false));
                     session.send(new ClientboundPlayerPositionPacket(playerPosPacket.getX(), -400d, playerPosPacket.getZ(), player.getYaw(), player.getPitch(), new Random().nextInt()));
                 }
-
-                int viewDistance = player.getViewDistance();
-                ChunkPos chunkPos = Slider.getChunkPos(player);
-                World world = player.getWorld();
-                ConcurrentHashMap<Vector2i, ChunkData> chunkDataMap = world.getChunkDataMap();
-                ChunkData currentChunk = chunkDataMap.get(chunkPos.pos());
-                if (currentChunk == null) {
-                    currentChunk = world.getGenerator().generateChunk(chunkPos);
-                    world.getChunkDataMap().put(chunkPos.pos(), currentChunk);
-                }
-                player.sendPacket(currentChunk.getPacket());
-                player.getWorld().viewChunkForPlayer(player);
             }
         }
     }
