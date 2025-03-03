@@ -10,7 +10,9 @@ import xyz.article.api.world.worldgen.WorldGenerator;
 
 public class OverWorldGenerator extends WorldGenerator {
     private static final int WORLD_HEIGHT = 384; // -64 to 320
-    private static final int SEA_LEVEL = 62;
+    private static final double NOISE_SCALE = 0.05; // 控制地形的平滑度，值越小地形越平滑
+    private static final double HEIGHT_MULTIPLIER = 32; // 控制地形的高度范围
+    private static final int SEA_LEVEL = 64; // 海平面高度
     private static final int CHUNK_SIZE = 16;
 
     private final PerlinNoise noise;
@@ -33,7 +35,7 @@ public class OverWorldGenerator extends WorldGenerator {
                 int worldX = pos.pos().getX() * CHUNK_SIZE + x;
                 int worldZ = pos.pos().getY() * CHUNK_SIZE + z;
 
-                double height = noise.noise(worldX * 0.05, worldZ * 0.05) * 32 + SEA_LEVEL;
+                double height = noise.noise(worldX * NOISE_SCALE, 0, worldZ * NOISE_SCALE) * HEIGHT_MULTIPLIER + SEA_LEVEL;
 
                 for (int y = 0; y < WORLD_HEIGHT; y++) {
                     int sectionIndex = y / 16;

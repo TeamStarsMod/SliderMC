@@ -134,10 +134,10 @@ public class Player {
     }
 
     /**
-     * 我只是假定它是4
+     * 我只是假定它是8
      * @return 视野距离
      */
     public int getViewDistance () {
-        return 4;
+        return 8;
     }
 }

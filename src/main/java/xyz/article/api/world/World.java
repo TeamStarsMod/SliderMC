@@ -4,6 +4,7 @@ import net.kyori.adventure.key.Key;
 import org.cloudburstmc.math.vector.Vector2i;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
@@ -113,17 +114,20 @@ public class World {
         }
     }
 
-    public void viewChunkForPlayer (Player player) {
-        double circumference = 2 * Math.PI * player.getViewDistance();
-        int numPoints = (int) (circumference / 0.7);
+    public void viewChunkForPlayer(Player player) {
+        int viewDistance = player.getViewDistance();
+        ChunkPos chunkPos = Slider.getChunkPos(player);
+        int playerChunkX = chunkPos.pos().getX();
+        int playerChunkZ = chunkPos.pos().getY();
 
-        for (int i = 0; i < numPoints; i++) {
-            double theta = (2 * Math.PI / numPoints) * i;
-            int x = (int) (player.getViewDistance() * Math.cos(theta));
-            int y = (int) (player.getViewDistance() * Math.sin(theta));
-            Vector2i vector2i = Vector2i.from(player.getX() + x, player.getZ() + y);
-            if (!chunkDataMap.containsKey(vector2i)) chunkDataMap.put(vector2i, generator.generateChunk(new ChunkPos(this, vector2i)));
-            player.sendPacket(chunkDataMap.get(vector2i).getPacket());
+        for (int x = playerChunkX - viewDistance; x <= playerChunkX + viewDistance; x++) {
+            for (int z = playerChunkZ - viewDistance; z <= playerChunkZ + viewDistance; z++) {
+                Vector2i chunkPos1 = Vector2i.from(x, z);
+                if (!chunkDataMap.containsKey(chunkPos1)) {
+                    chunkDataMap.put(chunkPos1, generator.generateChunk(new ChunkPos(this, chunkPos1)));
+                }
+                player.sendPacket(chunkDataMap.get(chunkPos1).getPacket());
+            }
         }
     }
 
