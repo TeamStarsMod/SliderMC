@@ -4,7 +4,11 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import org.cloudburstmc.nbt.NbtMap;
 import org.geysermc.mcprotocollib.protocol.codec.MinecraftCodecHelper;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.BitStorage;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.DataPalette;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.GlobalPalette;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.PaletteType;
 import org.geysermc.mcprotocollib.protocol.data.game.level.LightUpdateData;
 import org.geysermc.mcprotocollib.protocol.data.game.level.block.BlockEntityInfo;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundLevelChunkWithLightPacket;
@@ -24,6 +28,9 @@ public class ChunkData {
     private NbtMap heightMap;
     private BlockEntityInfo[] blockEntityInfos;
     private LightUpdateData lightUpdateData;
+
+    private final ByteBuf byteBuf = Unpooled.buffer();
+    private final MinecraftCodecHelper helper = new MinecraftCodecHelper();
 
     /**
      * 构建一个新区块 (请注意，区块数据并不会自动添加到世界中，需要您手动添加)
@@ -53,7 +60,7 @@ public class ChunkData {
     public ChunkData(@NotNull ChunkPos pos) {
         ChunkSection[] chunkSections = new ChunkSection[24];
         for (int i = 0; i < 24; i++) {
-            chunkSections[i] = new ChunkSection();
+            chunkSections[i] = new ChunkSection(0, DataPalette.createForChunk(), new DataPalette(GlobalPalette.INSTANCE, new BitStorage(16, 16 * 16 * 16), PaletteType.BIOME));
         }
 
         this.chunkPos = pos;
@@ -186,8 +193,7 @@ public class ChunkData {
      * @return 区块数据包 (ClientboundLevelChunkWithLightPacket)
      */
     public ClientboundLevelChunkWithLightPacket getPacket() {
-        ByteBuf byteBuf = Unpooled.buffer();
-        MinecraftCodecHelper helper = new MinecraftCodecHelper();
+        byteBuf.clear();
         for (int i = 0; i < 24; i++) {
             helper.writeChunkSection(byteBuf, chunkSections[i]);
         }

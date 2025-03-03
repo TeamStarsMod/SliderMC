@@ -2,6 +2,7 @@ package xyz.article.api.world;
 
 import net.kyori.adventure.key.Key;
 import org.cloudburstmc.math.vector.Vector2i;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundForgetLevelChunkPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.api.Slider;
@@ -10,7 +11,10 @@ import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
 import xyz.article.api.world.worldgen.WorldGenerator;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.*;
 
 public class World {
@@ -116,20 +120,38 @@ public class World {
 
     public void viewChunkForPlayer(Player player) {
         int viewDistance = player.getViewDistance();
-        ChunkPos chunkPos = Slider.getChunkPos(player);
-        int playerChunkX = chunkPos.pos().getX();
-        int playerChunkZ = chunkPos.pos().getY();
+        ChunkPos newChunkPos = Slider.getChunkPos(player);
+        int newPlayerChunkX = newChunkPos.pos().getX();
+        int newPlayerChunkZ = newChunkPos.pos().getY();
 
-        for (int x = playerChunkX - viewDistance; x <= playerChunkX + viewDistance; x++) {
-            for (int z = playerChunkZ - viewDistance; z <= playerChunkZ + viewDistance; z++) {
-                Vector2i chunkPos1 = Vector2i.from(x, z);
-                if (!chunkDataMap.containsKey(chunkPos1)) {
-                    chunkDataMap.put(chunkPos1, generator.generateChunk(new ChunkPos(this, chunkPos1)));
-                }
-                player.sendPacket(chunkDataMap.get(chunkPos1).getPacket());
+        // 用于存储玩家新视野范围内的区块位置
+        Set<Vector2i> newViewableChunks = new HashSet<>();
+
+        // 计算新视野范围内的所有区块位置
+        for (int x = newPlayerChunkX - viewDistance; x <= newPlayerChunkX + viewDistance; x++) {
+            for (int z = newPlayerChunkZ - viewDistance; z <= newPlayerChunkZ + viewDistance; z++) {
+                newViewableChunks.add(Vector2i.from(x, z));
             }
         }
+
+        // 遍历现有的chunkDataMap，检查每个区块是否还在新视野范围内
+        for (Vector2i chunkPos : new ArrayList<>(chunkDataMap.keySet())) {
+            // 如果当前区块不在新视野范围内，则发送卸载包
+            if (!newViewableChunks.contains(chunkPos)) {
+                // 发送卸载区块的包给玩家
+                player.sendPacket(new ClientboundForgetLevelChunkPacket(chunkPos.getX(), chunkPos.getY()));
+            }
+        }
+
+        // 生成并发送新视野范围内的区块
+        for (Vector2i chunkPos : newViewableChunks) {
+            if (!chunkDataMap.containsKey(chunkPos)) {
+                chunkDataMap.put(chunkPos, generator.generateChunk(new ChunkPos(this, chunkPos)));
+            }
+            player.sendPacket(chunkDataMap.get(chunkPos).getPacket());
+        }
     }
+
 
     public WorldGenerator getGenerator () {
         return generator;
