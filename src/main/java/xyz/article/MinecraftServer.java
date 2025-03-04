@@ -7,6 +7,7 @@ import org.geysermc.mcprotocollib.auth.GameProfile;
 import org.geysermc.mcprotocollib.auth.SessionService;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.event.server.ServerAdapter;
+import org.geysermc.mcprotocollib.network.event.server.ServerClosingEvent;
 import org.geysermc.mcprotocollib.network.event.server.SessionAddedEvent;
 import org.geysermc.mcprotocollib.network.event.server.SessionRemovedEvent;
 import org.geysermc.mcprotocollib.network.event.session.SessionAdapter;
@@ -36,8 +37,12 @@ import xyz.article.plugin.PluginManagerInstant;
 import xyz.article.world.OverWorldGenerator;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class MinecraftServer implements Server {
     private static MyTCPServer server;
@@ -46,9 +51,12 @@ public class MinecraftServer implements Server {
     public static PluginManager pluginManager;
     private static final Logger log = LoggerFactory.getLogger(MinecraftServer.class);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         long start = System.currentTimeMillis();
-        server = new MyTCPServer("0.0.0.0", 25565, MinecraftProtocol::new);
+        File propertiesFile = new File("./settings.yml");
+        if (propertiesFile.createNewFile()) log.info("已创建配置文件");
+        Settings.init(propertiesFile);
+        server = new MyTCPServer(Settings.BIND_ADDRESS, Settings.SERVER_PORT, MinecraftProtocol::new);
         eventManager = new EventManagerInstant();
         pluginManager = new PluginManagerInstant();
         apiServer = new MinecraftServer();

@@ -1,6 +1,9 @@
 package xyz.article.world;
 
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.BitStorage;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.DataPalette;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.*;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
 import xyz.article.api.world.worldgen.PerlinNoise;
@@ -27,7 +30,9 @@ public class OverWorldGenerator extends WorldGenerator {
 
     @Override
     public ChunkData generateChunk(ChunkPos pos) {
+        // FIXME: 生物群系似乎无法正常使用(不是指上面的噪声，是指设置了数据但是客户端没有收到)，且某些客户端会导致崩溃
         ChunkData chunkData = new ChunkData(pos);
+
         // 遍历区块中的每个x,z坐标
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
@@ -49,7 +54,7 @@ public class OverWorldGenerator extends WorldGenerator {
                     int localY = y % 16;
                     ChunkSection section = chunkData.getChunkSections()[sectionIndex];
                     if (section != null) {
-                        section.getBiomeData().set(x, localY, z, biomeId);
+                        section.getBiomeData().set(x, localY, z, 1);
                     }
                 }*/
 

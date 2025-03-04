@@ -1,13 +1,21 @@
 package xyz.article.packetprocessor;
 
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.sound.Sound;
 import org.cloudburstmc.math.vector.Vector3i;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.packet.Packet;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.Animation;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.GameMode;
+import org.geysermc.mcprotocollib.protocol.data.game.level.particle.BlockParticleData;
+import org.geysermc.mcprotocollib.protocol.data.game.level.particle.Particle;
+import org.geysermc.mcprotocollib.protocol.data.game.level.particle.ParticleData;
+import org.geysermc.mcprotocollib.protocol.data.game.level.particle.ParticleType;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundAnimatePacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundBlockChangedAckPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundLevelParticlesPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSoundPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.player.ServerboundPlayerActionPacket;
 import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
@@ -35,12 +43,14 @@ public class PlayerActionPacketProcessor implements PacketProcessor {
                         ChunkSection[] chunkSections = chunk.getChunkSections();
                         ChunkSection targetSection = chunkSections[chunkSectionIndex];
                         Vector3i inChunkSectionLocation = Slider.getInChunkSectionLocation(blockPos.pos().getX(), blockPos.pos().getY(), blockPos.pos().getZ(), chunkSectionIndex);
+                        int blockState = targetSection.getBlock(inChunkSectionLocation.getX(), inChunkSectionLocation.getY(), inChunkSectionLocation.getZ());
                         targetSection.setBlock(inChunkSectionLocation.getX(), inChunkSectionLocation.getY(), inChunkSectionLocation.getZ(), 0);
                         session.send(new ClientboundBlockChangedAckPacket(actionPacket.getSequence()));
                         for (Player player1 : player.getWorld().getPlayers()) {
                             player1.sendPacket(chunk.getPacket());
                             if (!(player1.getSession().equals(session))) {
                                 player1.sendPacket(new ClientboundAnimatePacket(player.getEntityId(), Animation.SWING_ARM));
+                                player1.sendPacket(new ClientboundLevelParticlesPacket(new Particle(ParticleType.BLOCK, new BlockParticleData(blockState)), false, blockPos.pos().getX(), blockPos.pos().getY(), blockPos.pos().getZ(), 0f, 0.5f, 0f, 0, 80));
                             }
                         }
                     }

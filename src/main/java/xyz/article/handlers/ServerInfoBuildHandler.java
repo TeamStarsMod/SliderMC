@@ -13,6 +13,7 @@ import org.geysermc.mcprotocollib.protocol.data.status.handler.ServerInfoBuilder
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
+import xyz.article.Settings;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.event.events.ClientPingEvent;
 
@@ -68,11 +69,13 @@ public class ServerInfoBuildHandler implements ServerInfoBuilder {
         for (Player player : RunningData.globalPlayers) {
             list.add(player.getProfile());
         }
-        PlayerInfo playerInfo = new PlayerInfo(100, RunningData.globalPlayers.size(), list);
+        PlayerInfo playerInfo = new PlayerInfo(Settings.MAX_PLAYERS, RunningData.globalPlayers.size(), list);
         VersionInfo versionInfo = new VersionInfo(MinecraftCodec.CODEC.getMinecraftVersion(), MinecraftCodec.CODEC.getProtocolVersion());
         byte[] icon = null;
         boolean enforcesSecureChat = false;
-        log.info("<-- {} has pinged -->", session.getRemoteAddress()); // 在玩家Ping服务器时，显示一条Ping消息
+        if (Settings.SHOULD_PING_SHOWN) {
+            log.info("<-- {} has pinged -->", session.getRemoteAddress()); // 在玩家Ping服务器时，显示一条Ping消息
+        }
         ClientPingEvent event = new ClientPingEvent(gradientMOTD, playerInfo, versionInfo, icon, enforcesSecureChat);
         eventManager.callEvent(event);
         return new ServerStatusInfo(
