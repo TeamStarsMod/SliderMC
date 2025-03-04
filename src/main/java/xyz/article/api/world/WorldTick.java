@@ -1,9 +1,7 @@
 package xyz.article.api.world;
 
 import net.kyori.adventure.key.Key;
-import net.kyori.adventure.text.Component;
 import org.cloudburstmc.math.vector.Vector2i;
-import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundSystemChatPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundForgetLevelChunkPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetChunkCacheCenterPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetTimePacket;
@@ -45,60 +43,61 @@ public class WorldTick {
         }
 
         for (Player player : world.getPlayers()) {
-            // FIXME: 如果VIEW_DISTANCE超过12，则区块会有部分不加载
-            int viewDistance = Math.min(Settings.VIEW_DISTANCE + 2, 32); // 最大限制32
+            int viewDistance = Settings.VIEW_DISTANCE;
+            if (Settings.SHOULD_SEND_MORE_VIEW_DATA) {
+                viewDistance += 2; // 如果选项开启，则发送更多数据来让客户端看不到世界边缘，增强体验 (对性能有影响)
+            }
             long maxSquared = (long) viewDistance * viewDistance;
 
             ChunkPos playerChunkPos = Slider.getChunkPos(player);
+            // 确保正确获取区块的x和z坐标
             int playerChunkX = playerChunkPos.pos().getX();
             int playerChunkZ = playerChunkPos.pos().getY();
 
-            // 圆形遍历
+            // 圆形遍历加载区块
             for (int x = playerChunkX - viewDistance; x <= playerChunkX + viewDistance; x++) {
                 int dx = x - playerChunkX;
-                long xSquared = (long)dx * dx;
+                long xSquared = (long) dx * dx;
                 if (xSquared > maxSquared) continue;
 
                 int maxDz = (int) Math.sqrt(maxSquared - xSquared);
                 for (int z = playerChunkZ - maxDz; z <= playerChunkZ + maxDz; z++) {
-                    Vector2i vector2i = Vector2i.from(x, z);
-                    ChunkData chunkData = world.getChunkDataMap().get(vector2i);
-                    if (chunkData == null) {
-                        chunkData = world.getGenerator().generateChunk(new ChunkPos(RunningData.worldMap.get(Key.key("minecraft:overworld")), Vector2i.from(x, z)));
-                        world.getChunkDataMap().put(Vector2i.from(x, z), chunkData);
-                    }
-                    if (!player.getLoadedChunks().containsKey(vector2i)) {
-                        player.getLoadedChunks().put(vector2i, chunkData);
+                    Vector2i chunkKey = Vector2i.from(x, z);
+                    int finalZ = z;
+                    int finalX = x;
+                    ChunkData chunkData = world.getChunkDataMap().computeIfAbsent(chunkKey, k ->
+                            world.getGenerator().generateChunk(new ChunkPos(
+                                    RunningData.worldMap.get(Key.key("minecraft:overworld")),
+                                    Vector2i.from(finalX, finalZ)
+                            ))
+                    );
+                    if (!player.getLoadedChunks().containsKey(chunkKey)) {
+                        player.getLoadedChunks().put(chunkKey, chunkData);
                         player.sendPacket(chunkData.getPacket());
                     }
                 }
             }
-            // 遍历玩家已加载的区块
+
+            // 卸载超出视距的区块
             Iterator<Map.Entry<Vector2i, ChunkData>> it = player.getLoadedChunks().entrySet().iterator();
             while (it.hasNext()) {
                 Map.Entry<Vector2i, ChunkData> entry = it.next();
                 Vector2i chunkPos = entry.getKey();
-
                 int dx = chunkPos.getX() - playerChunkX;
-                int dz = chunkPos.getY() - playerChunkZ;
-                long squaredDistance = (long)dx * dx + (long)dz * dz;
+                int dz = chunkPos.getY() - playerChunkZ; // Vector2i的y存储的是z坐标
+                long squaredDistance = (long) dx * dx + (long) dz * dz;
 
                 if (squaredDistance > maxSquared) {
-                    // 通知客户端卸载该区块
                     player.sendPacket(new ClientboundForgetLevelChunkPacket(chunkPos.getX(), chunkPos.getY()));
-                    // 从玩家的已加载区块列表中移除
                     it.remove();
                 }
             }
 
-            if (player.getLastChunkPos() != null) {
-                if (!player.getLastChunkPos().pos().equals(playerChunkPos.pos())) {
-                    player.setLastChunkPos(playerChunkPos);
-                    player.sendPacket(new ClientboundSetChunkCacheCenterPacket(playerChunkPos.pos().getX(), playerChunkPos.pos().getY()));
-                }
-            } else {
-                player.setLastChunkPos(playerChunkPos);
-                player.sendPacket(new ClientboundSetChunkCacheCenterPacket(playerChunkPos.pos().getX(), playerChunkPos.pos().getY()));
+            // 更新客户端中心区块
+            ChunkPos currentChunk = new ChunkPos(RunningData.worldMap.get(Key.key("minecraft:overworld")), Vector2i.from(playerChunkX, playerChunkZ));
+            if (!currentChunk.equals(player.getLastChunkPos())) {
+                player.setLastChunkPos(currentChunk);
+                player.sendPacket(new ClientboundSetChunkCacheCenterPacket(playerChunkX, playerChunkZ));
             }
         }
     }

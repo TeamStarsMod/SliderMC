@@ -26,9 +26,7 @@ import xyz.article.api.entities.EntityID;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.inventory.PlayerInventory;
 import xyz.article.api.world.chunk.ChunkData;
-import xyz.article.api.world.worldgen.WorldGenerator;
 import xyz.article.packets.ClientboundServerBrandPacket;
-import xyz.article.world.OverWorldGenerator;
 
 import java.util.*;
 
@@ -39,7 +37,7 @@ public class LoginHandler implements ServerLoginHandler {
     private final Logger log = LoggerFactory.getLogger(LoginHandler.class);
     @Override
     public void loggedIn (Session session) {
-        // Player Login Logic (Current State: Login, Next State: Configuration)
+        // Player Login Logic
         GameProfile profile = session.getFlag(MinecraftConstants.PROFILE_KEY);
         int entityId = EntityID.getRandomEntityId();
         Player player = new Player(entityId, session, profile, new PlayerInventory(), RunningData.worldMap.get(Key.key("minecraft:overworld")), GameMode.CREATIVE,8.5, 64, 8.5, 0, 0);
