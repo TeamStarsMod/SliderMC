@@ -17,9 +17,11 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.Clientbound
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundPlayerInfoUpdatePacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundSystemChatPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetChunkCacheRadiusPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
+import xyz.article.Settings;
 import xyz.article.api.entities.EntityID;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.inventory.PlayerInventory;
@@ -37,48 +39,14 @@ public class LoginHandler implements ServerLoginHandler {
     private final Logger log = LoggerFactory.getLogger(LoginHandler.class);
     @Override
     public void loggedIn (Session session) {
-        // Player Login Logic
+        // Player Login Logic (Current State: Login, Next State: Configuration)
         GameProfile profile = session.getFlag(MinecraftConstants.PROFILE_KEY);
         int entityId = EntityID.getRandomEntityId();
         Player player = new Player(entityId, session, profile, new PlayerInventory(), RunningData.worldMap.get(Key.key("minecraft:overworld")), GameMode.CREATIVE,8.5, 64, 8.5, 0, 0);
         RunningData.globalEntities.add(player.getEntityId());
         session.send(new ClientboundLoginPacket(player.getEntityId(), false, new Key[]{ Key.key("minecraft:overworld") }, 100, 10, 16, false, false, false, new PlayerSpawnInfo(0, player.getWorld().getKey(), 100, player.getGameMode(), player.getGameMode(), false, false, null, 100), true));
         session.send(new ClientboundServerBrandPacket("SliderMC - Rebuild").getPacket());
-        /*
-        for (int i = -6; i < 6; i++) {
-            for (int l = -6; l < 6; l++) {
-                if (player.getWorld().getChunkDataMap().get(Vector2i.from(i, l)) == null) {
-                    ChunkSection[] chunkSections = new ChunkSection[24];
-                    for (int r = 0; r < 24; r++) {
-                        chunkSections[r] = new ChunkSection();
-                        chunkSections[r].getBiomeData().set(1, 1, 1, 1);
-                    }
-                    for (int r = 0; r < 16; r++) {
-                        for (int u = 0; u < 16; u++) {
-                            for (int j = 0; j < 16; j++) {
-                                chunkSections[0].setBlock(r, u, j, 9);
-                                chunkSections[0].getBiomeData().set(1, 1, 1, 1);
-                            }
-                        }
-                    }
-                    for (int r = 1; r < 24; r++) {
-                        for (int e = 0; e < 16; e++) {
-                            for (int u = 0; u < 16; u++) {
-                                for (int j = 0; j < 16; j++) {
-                                    chunkSections[r].setBlock(e, u, j, 0);
-                                    chunkSections[r].getBiomeData().set(1, 1, 1, 1);
-                                }
-                            }
-                        }
-                    }
-                    ChunkData chunkData = new ChunkData(new ChunkPos(RunningData.worldMap.get(Key.key("minecraft:overworld")), Vector2i.from(i, l)), chunkSections);
-                    session.send(chunkData.getPacket());
-                    player.getWorld().getChunkDataMap().put(Vector2i.from(i, l), chunkData);
-                } else {
-                    session.send(player.getWorld().getChunkDataMap().get(Vector2i.from(i, l)).getPacket());
-                }
-            }
-        }*/
+        session.send(new ClientboundSetChunkCacheRadiusPacket(Settings.VIEW_DISTANCE));
         for (int i = -6; i < 6; i++) {
             for (int l = -6; l < 6; l++) {
                 ChunkData chunkData = player.getWorld().getChunkDataMap().get(Vector2i.from(i, l));

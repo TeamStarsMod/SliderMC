@@ -8,6 +8,7 @@ import org.geysermc.mcprotocollib.protocol.data.game.entity.player.GameMode;
 import xyz.article.api.inventory.PlayerInventory;
 import xyz.article.api.world.World;
 import xyz.article.api.world.chunk.ChunkData;
+import xyz.article.api.world.chunk.ChunkPos;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,6 +28,7 @@ public class Player {
     private final Hand mainHand, leftHand;
 
     private final Map<Vector2i, ChunkData> loadedChunks = new ConcurrentHashMap<>();
+    private ChunkPos lastChunkPos = null;
 
     /**
      * 创建一个新玩家实例
@@ -140,15 +142,15 @@ public class Player {
         return leftHand;
     }
 
-    /**
-     * 我只是假定它是8
-     * @return 视野距离
-     */
-    public int getViewDistance () {
-        return 8;
-    }
-
     public Map<Vector2i, ChunkData> getLoadedChunks() {
         return loadedChunks;
+    }
+
+    public void setLastChunkPos(ChunkPos lastChunkPos) {
+        this.lastChunkPos = lastChunkPos;
+    }
+
+    public ChunkPos getLastChunkPos() {
+        return lastChunkPos;
     }
 }

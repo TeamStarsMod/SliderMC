@@ -1,10 +1,14 @@
 package xyz.article.api.world;
 
 import net.kyori.adventure.key.Key;
+import net.kyori.adventure.text.Component;
 import org.cloudburstmc.math.vector.Vector2i;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundSystemChatPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundForgetLevelChunkPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetChunkCacheCenterPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetTimePacket;
 import xyz.article.RunningData;
+import xyz.article.Settings;
 import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.world.chunk.ChunkData;
@@ -41,7 +45,7 @@ public class WorldTick {
         }
 
         for (Player player : world.getPlayers()) {
-            int viewDistance = player.getViewDistance(); // 获取玩家的视野距离
+            int viewDistance = Settings.VIEW_DISTANCE;
             ChunkPos playerChunkPos = Slider.getChunkPos(player); // 获取玩家所在的区块坐标
             int playerChunkX = playerChunkPos.pos().getX();
             int playerChunkZ = playerChunkPos.pos().getY();
@@ -74,7 +78,7 @@ public class WorldTick {
                 // 计算区块与玩家区块的距离
                 double distance = Math.sqrt(Math.pow(chunkPos.getX() - playerChunkX, 2) + Math.pow(chunkPos.getY() - playerChunkZ, 2));
 
-                // 如果区块超出了视野范围
+                // 如果区块超出了可视范围
                 if (distance > viewDistance) {
                     // 通知客户端卸载该区块
                     player.sendPacket(new ClientboundForgetLevelChunkPacket(chunkPos.getX(), chunkPos.getY()));
@@ -82,6 +86,16 @@ public class WorldTick {
                     // 从玩家的已加载区块列表中移除
                     it.remove();
                 }
+            }
+
+            if (player.getLastChunkPos() != null) {
+                if (!player.getLastChunkPos().pos().equals(playerChunkPos.pos())) {
+                    player.setLastChunkPos(playerChunkPos);
+                    player.sendPacket(new ClientboundSetChunkCacheCenterPacket(playerChunkPos.pos().getX(), playerChunkPos.pos().getY()));
+                }
+            } else {
+                player.setLastChunkPos(playerChunkPos);
+                player.sendPacket(new ClientboundSetChunkCacheCenterPacket(playerChunkPos.pos().getX(), playerChunkPos.pos().getY()));
             }
         }
     }

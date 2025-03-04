@@ -55,8 +55,8 @@ public class MinecraftServer implements Server {
         SessionService sessionService = new SessionService();
         sessionService.setProxy(null);
         server.setGlobalFlag(MinecraftConstants.SESSION_SERVICE_KEY, sessionService);
-        server.setGlobalFlag(MinecraftConstants.ENCRYPT_CONNECTION, false);
-        server.setGlobalFlag(MinecraftConstants.SHOULD_AUTHENTICATE, false);
+        server.setGlobalFlag(MinecraftConstants.ENCRYPT_CONNECTION, Settings.ONLINE_MODE);
+        server.setGlobalFlag(MinecraftConstants.SHOULD_AUTHENTICATE, Settings.ONLINE_MODE);
         server.setGlobalFlag(MinecraftConstants.SERVER_COMPRESSION_THRESHOLD, 256);
 
         server.setGlobalFlag(MinecraftConstants.SERVER_INFO_BUILDER_KEY, new ServerInfoBuildHandler());
@@ -79,7 +79,9 @@ public class MinecraftServer implements Server {
                     RunningData.globalPlayers.remove(player);
                     RunningData.globalSessions.remove(event.getSession());
                     RunningData.globalSessionPlayerMap.remove(event.getSession());
-                    RunningData.globalEntities.remove(player.getEntityId());
+                    if (player != null) {
+                        RunningData.globalEntities.remove(player.getEntityId());
+                    }
                 }
             }
 
