@@ -1,9 +1,16 @@
 package xyz.article.api.world.chunk;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import net.kyori.adventure.key.Key;
+import org.cloudburstmc.math.vector.Vector2i;
 import org.cloudburstmc.nbt.NbtMap;
+import org.cloudburstmc.nbt.NbtMapBuilder;
+import org.cloudburstmc.nbt.NbtType;
 import org.geysermc.mcprotocollib.protocol.codec.MinecraftCodecHelper;
+import org.geysermc.mcprotocollib.protocol.codec.NbtComponentSerializer;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.BitStorage;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.DataPalette;
@@ -11,18 +18,26 @@ import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.GlobalPalette
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.PaletteType;
 import org.geysermc.mcprotocollib.protocol.data.game.level.LightUpdateData;
 import org.geysermc.mcprotocollib.protocol.data.game.level.block.BlockEntityInfo;
+import org.geysermc.mcprotocollib.protocol.data.game.level.block.BlockEntityType;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundLevelChunkWithLightPacket;
 import org.jetbrains.annotations.NotNull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import xyz.article.RunningData;
 
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Chunk数据
  */
 public class ChunkData {
+    private static final Logger log = LoggerFactory.getLogger(ChunkData.class);
     private final ChunkPos chunkPos;
     private final ChunkSection[] chunkSections;
     private NbtMap heightMap;
@@ -205,5 +220,194 @@ public class ChunkData {
                 blockEntityInfos,
                 lightUpdateData
         );
+    }
+
+    /**
+     * 将 ChunkData 序列化为 NBT 并写入文件
+     * @param file 目标文件
+     * @throws IOException 如果写入文件时发生错误
+     */
+    public void serializeToFile(File file) throws IOException {
+        NbtMapBuilder nbtBuilder = NbtMap.builder();
+
+        // 序列化 chunkPos
+        nbtBuilder.putCompound("chunkPos", NbtMap.builder()
+                .putString("world", chunkPos.world().getKey().toString())
+                .putInt("x", chunkPos.pos().getX())
+                .putInt("z", chunkPos.pos().getY())
+                .build());
+
+        // 序列化 chunkSections
+        List<NbtMap> chunkSectionsList = new ArrayList<>();
+        for (int i = 0; i < 24; i++) {
+            ChunkSection chunkSection = chunkSections[i];
+            NbtMapBuilder sectionBuilder = NbtMap.builder();
+
+            // 序列化方块数据
+            DataPalette chunkDataPalette = chunkSection.getChunkData();
+            NbtMapBuilder chunkDataBuilder = NbtMap.builder();
+            chunkDataBuilder.putInt("bitsPerEntry", chunkDataPalette.getStorage().getBitsPerEntry());
+            chunkDataBuilder.putLongArray("data", chunkDataPalette.getStorage().getData());
+            sectionBuilder.putCompound("chunkDataPalette", chunkDataBuilder.build());
+
+            // 序列化生物群系数据
+            DataPalette biomeDataPalette = chunkSection.getBiomeData();
+            NbtMapBuilder biomeDataBuilder = NbtMap.builder();
+            biomeDataBuilder.putInt("bitsPerEntry", biomeDataPalette.getStorage().getBitsPerEntry());
+            biomeDataBuilder.putLongArray("data", biomeDataPalette.getStorage().getData());
+            sectionBuilder.putCompound("biomeDataPalette", biomeDataBuilder.build());
+
+            sectionBuilder.putInt("blockCount", chunkSection.getBlockCount());
+            chunkSectionsList.add(sectionBuilder.build());
+        }
+        nbtBuilder.putList("chunkSections", NbtType.COMPOUND, chunkSectionsList);
+
+        // 序列化 heightMap
+        nbtBuilder.putCompound("heightMap", heightMap);
+
+        // 序列化 blockEntityInfos
+        List<NbtMap> blockEntitiesList = new ArrayList<>();
+        for (BlockEntityInfo blockEntity : blockEntityInfos) {
+            NbtMapBuilder blockEntityBuilder = NbtMap.builder();
+            blockEntityBuilder.putInt("x", blockEntity.getX());
+            blockEntityBuilder.putInt("y", blockEntity.getY());
+            blockEntityBuilder.putInt("z", blockEntity.getZ());
+            blockEntityBuilder.putString("type", blockEntity.getType().name());
+            blockEntityBuilder.putCompound("nbt", blockEntity.getNbt());
+            blockEntitiesList.add(blockEntityBuilder.build());
+        }
+        nbtBuilder.putList("blockEntityInfos", NbtType.COMPOUND, blockEntitiesList);
+
+        // 序列化 lightUpdateData
+        NbtMapBuilder lightUpdateDataBuilder = NbtMap.builder();
+        lightUpdateDataBuilder.putList("skyUpdates", NbtType.BYTE_ARRAY, lightUpdateData.getSkyUpdates());
+        lightUpdateDataBuilder.putList("blockUpdates", NbtType.BYTE_ARRAY, lightUpdateData.getBlockUpdates());
+        lightUpdateDataBuilder.putInt("skyYMaskSize", lightUpdateData.getSkyYMask().size());
+        lightUpdateDataBuilder.putList("skyYMask", NbtType.BYTE_ARRAY, lightUpdateData.getSkyYMask().toByteArray());
+        lightUpdateDataBuilder.putInt("blockYMaskSize", lightUpdateData.getBlockYMask().size());
+        lightUpdateDataBuilder.putList("blockYMask", NbtType.BYTE_ARRAY, lightUpdateData.getBlockYMask().toByteArray());
+        lightUpdateDataBuilder.putInt("emptySkyYMaskSize", lightUpdateData.getEmptySkyYMask().size());
+        lightUpdateDataBuilder.putList("emptySkyYMask", NbtType.BYTE_ARRAY, lightUpdateData.getEmptySkyYMask().toByteArray());
+        lightUpdateDataBuilder.putInt("emptyBlockYMaskSize", lightUpdateData.getEmptyBlockYMask().size());
+        lightUpdateDataBuilder.putList("emptyBlockYMask", NbtType.BYTE_ARRAY, lightUpdateData.getEmptyBlockYMask().toByteArray());
+        nbtBuilder.putCompound("lightUpdateData", lightUpdateDataBuilder.build());
+
+        // 将 NBT 数据写入文件
+        try (FileWriter writer = new FileWriter(file)) {
+            Gson gson = new Gson();
+            JsonElement jsonElement = NbtComponentSerializer.tagComponentToJson(nbtBuilder.build());
+            gson.toJson(jsonElement, writer);
+        }
+    }
+
+    /**
+     * 从文件中读取 NBT 数据并反序列化为 ChunkData
+     * @param file 源文件
+     * @return 反序列化后的 ChunkData 对象
+     * @throws IOException 如果读取文件时发生错误
+     */
+    public static ChunkData deserializeFromFile(File file) throws IOException {
+        // 从文件中读取 JSON 数据
+        try (FileReader reader = new FileReader(file)) {
+            Gson gson = new Gson();
+            JsonElement jsonElement = gson.fromJson(reader, JsonElement.class); // 将 JSON 数据解析为 JsonElement
+
+            // 将 JsonElement 转换为 NbtMap
+            NbtMap nbt = (NbtMap) NbtComponentSerializer.jsonComponentToTag(jsonElement);
+
+            // 从 NbtMap 中提取数据并重建 ChunkData
+            if (nbt != null) {
+                return fromNbt(nbt);
+            } else {
+                log.error("在加载区块时出现问题！ {} (NBT IS NULL)", file.getPath());
+            }
+
+            return null;
+        }
+    }
+
+    /**
+     * 从 NbtMap 中提取数据并重建 ChunkData
+     * @param nbt NbtMap 数据
+     * @return 重建后的 ChunkData 对象
+     */
+    private static ChunkData fromNbt(NbtMap nbt) {
+        // 反序列化 chunkPos
+        // 忽略这个警告
+        NbtMap chunkPosNbt = nbt.getCompound("chunkPos");
+        ChunkPos chunkPos = new ChunkPos(RunningData.worldMap.get(Key.key(chunkPosNbt.getString("world"))), Vector2i.from(chunkPosNbt.getInt("x"), chunkPosNbt.getInt("z")));
+
+        // 反序列化 chunkSections
+        List<NbtMap> chunkSectionsList = nbt.getList("chunkSections", NbtType.COMPOUND);
+        ChunkSection[] chunkSections = new ChunkSection[24];
+        for (int i = 0; i < chunkSectionsList.size(); i++) {
+            NbtMap sectionNbt = chunkSectionsList.get(i);
+
+            // 反序列化方块数据
+            NbtMap chunkDataNbt = sectionNbt.getCompound("chunkDataPalette");
+            int chunkDataBitsPerEntry = chunkDataNbt.getInt("bitsPerEntry");
+            long[] chunkDataData = chunkDataNbt.getLongArray("data");
+            DataPalette chunkDataPalette = new DataPalette(
+                    GlobalPalette.INSTANCE,
+                    new BitStorage(chunkDataBitsPerEntry, 16 * 16 * 16, chunkDataData),
+                    PaletteType.CHUNK
+            );
+
+            // 反序列化生物群系数据
+            NbtMap biomeDataNbt = sectionNbt.getCompound("biomeDataPalette");
+            int biomeDataBitsPerEntry = biomeDataNbt.getInt("bitsPerEntry");
+            long[] biomeDataData = biomeDataNbt.getLongArray("data");
+            System.out.println(chunkDataBitsPerEntry);
+            DataPalette biomeDataPalette = new DataPalette(
+                    GlobalPalette.INSTANCE,
+                    new BitStorage(biomeDataBitsPerEntry, 16 * 16 * 16, biomeDataData),
+                    PaletteType.BIOME
+            );
+
+            // 创建 ChunkSection
+            int blockCount = sectionNbt.getInt("blockCount");
+            chunkSections[i] = new ChunkSection(blockCount, chunkDataPalette, biomeDataPalette);
+        }
+
+        // 反序列化 heightMap
+        NbtMap heightMap = nbt.getCompound("heightMap");
+
+        // 反序列化 blockEntityInfos
+        List<NbtMap> blockEntitiesList = nbt.getList("blockEntityInfos", NbtType.COMPOUND);
+        BlockEntityInfo[] blockEntityInfos = new BlockEntityInfo[blockEntitiesList.size()];
+        for (int i = 0; i < blockEntitiesList.size(); i++) {
+            NbtMap blockEntityNbt = blockEntitiesList.get(i);
+            int x = blockEntityNbt.getInt("x");
+            int y = blockEntityNbt.getInt("y");
+            int z = blockEntityNbt.getInt("z");
+            String type = blockEntityNbt.getString("type");
+            NbtMap blockEntityData = blockEntityNbt.getCompound("nbt");
+            blockEntityInfos[i] = new BlockEntityInfo(x, y, z, BlockEntityType.valueOf(type), blockEntityData);
+        }
+
+        // 反序列化 lightUpdateData
+        NbtMap lightUpdateDataNbt = nbt.getCompound("lightUpdateData");
+        List<byte[]> skyUpdates = lightUpdateDataNbt.getList("skyUpdates", NbtType.BYTE_ARRAY);
+        List<byte[]> blockUpdates = lightUpdateDataNbt.getList("blockUpdates", NbtType.BYTE_ARRAY);
+        BitSet skyYMask = BitSet.valueOf(lightUpdateDataNbt.getByteArray("skyYMask"));
+        BitSet blockYMask = BitSet.valueOf(lightUpdateDataNbt.getByteArray("blockYMask"));
+        BitSet emptySkyYMask = BitSet.valueOf(lightUpdateDataNbt.getByteArray("emptySkyYMask"));
+        BitSet emptyBlockYMask = BitSet.valueOf(lightUpdateDataNbt.getByteArray("emptyBlockYMask"));
+        LightUpdateData lightUpdateData = new LightUpdateData(
+                skyYMask, blockYMask, emptySkyYMask, emptyBlockYMask,
+                skyUpdates, blockUpdates
+        );
+
+        // 创建并返回 ChunkData 对象
+        System.out.println("Chunk Position: " + chunkPos);
+        for (ChunkSection section : chunkSections) {
+            System.out.println("Section" + " Block Count: " + section.getBlockCount() + ", ChunkData: " + Arrays.toString(section.getChunkData().getStorage().getData()));
+        }
+        System.out.println("Height Map: " + heightMap);
+        for (BlockEntityInfo info : blockEntityInfos) {
+            System.out.println("Block Entity: " + info);
+        }
+        System.out.println("Light Update Data: " + lightUpdateData);
+        return new ChunkData(chunkPos, chunkSections, heightMap, blockEntityInfos, lightUpdateData);
     }
 }

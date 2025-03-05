@@ -7,7 +7,6 @@ import org.geysermc.mcprotocollib.auth.GameProfile;
 import org.geysermc.mcprotocollib.auth.SessionService;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.event.server.ServerAdapter;
-import org.geysermc.mcprotocollib.network.event.server.ServerClosingEvent;
 import org.geysermc.mcprotocollib.network.event.server.SessionAddedEvent;
 import org.geysermc.mcprotocollib.network.event.server.SessionRemovedEvent;
 import org.geysermc.mcprotocollib.network.event.session.SessionAdapter;
@@ -41,9 +40,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class MinecraftServer implements Server {
     private static MyTCPServer server;
@@ -138,5 +134,20 @@ public class MinecraftServer implements Server {
     @Override
     public PluginManager getPluginManager() {
         return null;
+    }
+
+    /**
+     * 停止并保存服务器
+     */
+    public static void stop() {
+        File saveDir = new File("./" + Settings.SAVE_FOLDER);
+        if (saveDir.mkdir()) log.info("正在创建存档文件夹");
+        RunningData.worldMap.forEach((key, world) -> {
+            File worldFile = new File(saveDir, key.namespace() + "_" + key.value());
+            if (worldFile.mkdir()) log.info("正在为世界 {} 创建文件夹", world.getKey());
+            world.stop(worldFile);
+        });
+        log.info("正在关闭服务器...");
+        server.close();
     }
 }

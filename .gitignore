@@ -37,5 +37,7 @@ build/
 ### Mac OS ###
 .DS_Store
 
-### Logs ###
-logs
+### Slider ###
+logs/
+plugins/
+save/

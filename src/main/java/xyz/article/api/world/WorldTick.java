@@ -12,6 +12,7 @@ import xyz.article.api.entities.player.Player;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
 
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -63,14 +64,24 @@ public class WorldTick {
                 int maxDz = (int) Math.sqrt(maxSquared - xSquared);
                 for (int z = playerChunkZ - maxDz; z <= playerChunkZ + maxDz; z++) {
                     Vector2i chunkKey = Vector2i.from(x, z);
-                    int finalZ = z;
-                    int finalX = x;
-                    ChunkData chunkData = world.getChunkDataMap().computeIfAbsent(chunkKey, k ->
-                            world.getGenerator().generateChunk(new ChunkPos(
-                                    RunningData.worldMap.get(Key.key("minecraft:overworld")),
-                                    Vector2i.from(finalX, finalZ)
-                            ))
-                    );
+                    ChunkData chunkData = null;
+                    boolean notFound = true;
+                    if (world.getChunkDataMap().containsKey(chunkKey)) {
+                        chunkData = world.getChunkDataMap().get(chunkKey);
+                        notFound = false;
+                    }
+                    if (notFound) {
+                        try {
+                            chunkData = world.getChunkFromSave(chunkKey);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                        if (chunkData == null) {
+                            chunkData = world.getGenerator().generateChunk(new ChunkPos(world, chunkKey));
+                        }
+
+                        world.getChunkDataMap().put(chunkKey, chunkData);
+                    }
                     if (!player.getLoadedChunks().containsKey(chunkKey)) {
                         player.getLoadedChunks().put(chunkKey, chunkData);
                         player.sendPacket(chunkData.getPacket());
@@ -94,7 +105,7 @@ public class WorldTick {
             }
 
             // 更新客户端中心区块
-            ChunkPos currentChunk = new ChunkPos(RunningData.worldMap.get(Key.key("minecraft:overworld")), Vector2i.from(playerChunkX, playerChunkZ));
+            ChunkPos currentChunk = new ChunkPos(player.getWorld(), Vector2i.from(playerChunkX, playerChunkZ));
             if (!currentChunk.equals(player.getLastChunkPos())) {
                 player.setLastChunkPos(currentChunk);
                 player.sendPacket(new ClientboundSetChunkCacheCenterPacket(playerChunkX, playerChunkZ));
@@ -119,5 +130,13 @@ public class WorldTick {
      */
     public int getWorldTime() {
         return worldTime;
+    }
+
+    /**
+     * 获取世界年龄
+     * @return 世界年龄
+     */
+    public int getWorldAge() {
+        return worldAge;
     }
 }

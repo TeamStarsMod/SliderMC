@@ -9,4 +9,8 @@ import xyz.article.api.world.World;
  * @param pos 区块所在世界中的坐标
  */
 public record ChunkPos(World world, Vector2i pos) {
+    @Override
+    public String toString() {
+        return "ChunkPos(world=" + world.getKey() + ", x=" + pos.getX() + ", z=" + pos.getY() + ")";
+    }
 }

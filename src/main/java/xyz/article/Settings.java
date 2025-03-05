@@ -17,6 +17,7 @@ public class Settings {
     public static boolean SHOULD_SEND_MORE_VIEW_DATA;
     public static boolean ONLINE_MODE;
     public static boolean SHOULD_PING_SHOWN;
+    public static String SAVE_FOLDER = "save";
 
     private static File propertiesFile;
 
