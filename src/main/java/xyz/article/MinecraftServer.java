@@ -25,6 +25,7 @@ import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.event.EventManager;
 import xyz.article.api.event.Listener;
+import xyz.article.api.event.events.PlayerQuitEvent;
 import xyz.article.api.packetprocessor.PacketProcessor;
 import xyz.article.api.plugin.Plugin;
 import xyz.article.api.plugin.PluginManager;
@@ -75,15 +76,17 @@ public class MinecraftServer implements Server {
             public void sessionRemoved(SessionRemovedEvent event) {
                 if (RunningData.globalSessions.contains(event.getSession())) {
                     GameProfile profile = event.getSession().getFlag(MinecraftConstants.PROFILE_KEY);
+                    Player player = Slider.getPlayer(event.getSession());
                     log.info("{} 离开了游戏", profile.getName());
                     RunningData.globalSessions.remove(event.getSession());
                     Component component = Component.text(profile.getName() + " 退出了游戏").color(NamedTextColor.YELLOW);
+                    PlayerQuitEvent quitEvent = new PlayerQuitEvent(player, component);
+                    Slider.getEventManager().callEvent(quitEvent);
                     for (Session session1 : RunningData.globalSessions) {
-                        session1.send(new ClientboundSystemChatPacket(component, false));
+                        session1.send(new ClientboundSystemChatPacket(quitEvent.getQuitMessage(), false));
                         session1.send(new ClientboundRemoveEntitiesPacket(new int[]{Objects.requireNonNull(Slider.getPlayer(event.getSession())).getEntityId()}));
                         session1.send(new ClientboundPlayerInfoRemovePacket(List.of(profile.getId())));
                     }
-                    Player player = Slider.getPlayer(event.getSession());
                     RunningData.globalPlayers.remove(player);
                     RunningData.globalSessions.remove(event.getSession());
                     RunningData.globalSessionPlayerMap.remove(event.getSession());

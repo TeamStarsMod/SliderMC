@@ -19,7 +19,7 @@ public class ClientPingEvent extends Event {
         this.playerInfo = playerInfo;
         this.versionInfo = versionInfo;
         this.icon = icon;
-        this. enforcesSecureChat = enforcesSecureChat;
+        this.enforcesSecureChat = enforcesSecureChat;
     }
 
     public void setMotd (Component motd) {
