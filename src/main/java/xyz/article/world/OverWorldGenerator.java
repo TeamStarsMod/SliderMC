@@ -83,6 +83,12 @@ public class OverWorldGenerator extends WorldGenerator {
             }
         }
 
+        for (ChunkSection chunkSection : chunkData.getChunkSections()) {
+            for (int i = 0; i < 16; i++) {
+                chunkSection.getBiomeData().set(i, i, i, 1);
+            }
+        }
+
         // 设置光照数据
         chunkData.setLightUpdateData(createLightUpdateData());
 

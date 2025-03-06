@@ -6,16 +6,13 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.kyori.adventure.key.Key;
 import org.cloudburstmc.math.vector.Vector2i;
-import org.cloudburstmc.nbt.NbtMap;
-import org.cloudburstmc.nbt.NbtMapBuilder;
-import org.cloudburstmc.nbt.NbtType;
+import org.cloudburstmc.nbt.*;
 import org.geysermc.mcprotocollib.protocol.codec.MinecraftCodecHelper;
 import org.geysermc.mcprotocollib.protocol.codec.NbtComponentSerializer;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.BitStorage;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.DataPalette;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.GlobalPalette;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.PaletteType;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.*;
 import org.geysermc.mcprotocollib.protocol.data.game.level.LightUpdateData;
 import org.geysermc.mcprotocollib.protocol.data.game.level.block.BlockEntityInfo;
 import org.geysermc.mcprotocollib.protocol.data.game.level.block.BlockEntityType;
@@ -24,13 +21,14 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
+import xyz.article.api.world.chunk.palette.PaletteID;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -247,14 +245,16 @@ public class ChunkData {
             DataPalette chunkDataPalette = chunkSection.getChunkData();
             NbtMapBuilder chunkDataBuilder = NbtMap.builder();
             chunkDataBuilder.putInt("bitsPerEntry", chunkDataPalette.getStorage().getBitsPerEntry());
-            chunkDataBuilder.putLongArray("data", chunkDataPalette.getStorage().getData());
+            chunkDataBuilder.putLongArray("chunkData", chunkDataPalette.getStorage().getData());
+            chunkDataBuilder.putInt("paletteType", getPaletteTypeNumber(chunkDataPalette.getPalette()));
             sectionBuilder.putCompound("chunkDataPalette", chunkDataBuilder.build());
 
             // 序列化生物群系数据
             DataPalette biomeDataPalette = chunkSection.getBiomeData();
             NbtMapBuilder biomeDataBuilder = NbtMap.builder();
             biomeDataBuilder.putInt("bitsPerEntry", biomeDataPalette.getStorage().getBitsPerEntry());
-            biomeDataBuilder.putLongArray("data", biomeDataPalette.getStorage().getData());
+            biomeDataBuilder.putLongArray("biomeData", biomeDataPalette.getStorage().getData());
+            biomeDataBuilder.putInt("paletteType", getPaletteTypeNumber(biomeDataPalette.getPalette()));
             sectionBuilder.putCompound("biomeDataPalette", biomeDataBuilder.build());
 
             sectionBuilder.putInt("blockCount", chunkSection.getBlockCount());
@@ -293,10 +293,14 @@ public class ChunkData {
         nbtBuilder.putCompound("lightUpdateData", lightUpdateDataBuilder.build());
 
         // 将 NBT 数据写入文件
-        try (FileWriter writer = new FileWriter(file)) {
-            Gson gson = new Gson();
-            JsonElement jsonElement = NbtComponentSerializer.tagComponentToJson(nbtBuilder.build());
-            gson.toJson(jsonElement, writer);
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            NbtMap nbt = nbtBuilder.build();
+            NBTOutputStream nbtOutputStream = NbtUtils.createWriter(fos);
+            nbtOutputStream.writeValue(nbt);
+            nbtOutputStream.close();
+            fos.flush();
+        } catch (Exception e) {
+            log.error(e.toString());
         }
     }
 
@@ -307,21 +311,12 @@ public class ChunkData {
      * @throws IOException 如果读取文件时发生错误
      */
     public static ChunkData deserializeFromFile(File file) throws IOException {
-        // 从文件中读取 JSON 数据
-        try (FileReader reader = new FileReader(file)) {
-            Gson gson = new Gson();
-            JsonElement jsonElement = gson.fromJson(reader, JsonElement.class); // 将 JSON 数据解析为 JsonElement
-
-            // 将 JsonElement 转换为 NbtMap
-            NbtMap nbt = (NbtMap) NbtComponentSerializer.jsonComponentToTag(jsonElement);
-
-            // 从 NbtMap 中提取数据并重建 ChunkData
-            if (nbt != null) {
-                return fromNbt(nbt);
-            } else {
-                log.error("在加载区块时出现问题！ {} (NBT IS NULL)", file.getPath());
-            }
-
+        try (FileInputStream fis = new FileInputStream(file)) {
+            NBTInputStream nbtInputStream = NbtUtils.createReader(fis);
+            NbtMap nbt = nbtInputStream.readValue(NbtType.COMPOUND);
+            return fromNbt(nbt);
+        } catch (Exception e) {
+            log.error(e.toString());
             return null;
         }
     }
@@ -331,7 +326,7 @@ public class ChunkData {
      * @param nbt NbtMap 数据
      * @return 重建后的 ChunkData 对象
      */
-    private static ChunkData fromNbt(NbtMap nbt) {
+    public static ChunkData fromNbt(NbtMap nbt) {
         // 反序列化 chunkPos
         // 忽略这个警告
         NbtMap chunkPosNbt = nbt.getCompound("chunkPos");
@@ -346,23 +341,15 @@ public class ChunkData {
             // 反序列化方块数据
             NbtMap chunkDataNbt = sectionNbt.getCompound("chunkDataPalette");
             int chunkDataBitsPerEntry = chunkDataNbt.getInt("bitsPerEntry");
-            long[] chunkDataData = chunkDataNbt.getLongArray("data");
-            DataPalette chunkDataPalette = new DataPalette(
-                    GlobalPalette.INSTANCE,
-                    new BitStorage(chunkDataBitsPerEntry, 16 * 16 * 16, chunkDataData),
-                    PaletteType.CHUNK
-            );
+            long[] chunkDataData = chunkDataNbt.getLongArray("chunkData");
+
+            DataPalette chunkDataPalette = PaletteID.getPaletteFromID(chunkDataNbt.getInt("paletteType"), new BitStorage(chunkDataBitsPerEntry, 16 * 16 * 16, chunkDataData), PaletteType.CHUNK);
 
             // 反序列化生物群系数据
             NbtMap biomeDataNbt = sectionNbt.getCompound("biomeDataPalette");
             int biomeDataBitsPerEntry = biomeDataNbt.getInt("bitsPerEntry");
-            long[] biomeDataData = biomeDataNbt.getLongArray("data");
-            System.out.println(chunkDataBitsPerEntry);
-            DataPalette biomeDataPalette = new DataPalette(
-                    GlobalPalette.INSTANCE,
-                    new BitStorage(biomeDataBitsPerEntry, 16 * 16 * 16, biomeDataData),
-                    PaletteType.BIOME
-            );
+            long[] biomeDataData = biomeDataNbt.getLongArray("biomeData");
+            DataPalette biomeDataPalette = PaletteID.getPaletteFromID(biomeDataNbt.getInt("paletteType"), new BitStorage(biomeDataBitsPerEntry, 16 * 16 * 16, biomeDataData), PaletteType.BIOME);
 
             // 创建 ChunkSection
             int blockCount = sectionNbt.getInt("blockCount");
@@ -399,15 +386,20 @@ public class ChunkData {
         );
 
         // 创建并返回 ChunkData 对象
-        System.out.println("Chunk Position: " + chunkPos);
-        for (ChunkSection section : chunkSections) {
-            System.out.println("Section" + " Block Count: " + section.getBlockCount() + ", ChunkData: " + Arrays.toString(section.getChunkData().getStorage().getData()));
-        }
-        System.out.println("Height Map: " + heightMap);
-        for (BlockEntityInfo info : blockEntityInfos) {
-            System.out.println("Block Entity: " + info);
-        }
-        System.out.println("Light Update Data: " + lightUpdateData);
         return new ChunkData(chunkPos, chunkSections, heightMap, blockEntityInfos, lightUpdateData);
+    }
+
+    private static int getPaletteTypeNumber(Palette palette) {
+        if (palette instanceof GlobalPalette) {
+            return 0;
+        } else if (palette instanceof ListPalette) {
+            return 1;
+        } else if (palette instanceof MapPalette) {
+            return 2;
+        } else if (palette instanceof SingletonPalette) {
+            return 3;
+        }
+
+        return -1;
     }
 }

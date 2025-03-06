@@ -44,7 +44,7 @@ public class World {
         this.generator = generator;
 
         log.info("正在初始化世界 {}", key);
-        preGenerationWorld();
+        //preGenerationWorld(); //会导致存档问题
         this.scheduler = Executors.newScheduledThreadPool(1); // 开启线程池处理Tick逻辑
         startTicking();
     }
@@ -105,7 +105,6 @@ public class World {
         File chunksDir = new File("./" + Settings.SAVE_FOLDER + "/" + key.namespace() + "_" + key.value() + "/chunks");
 
         if (!chunksDir.exists() || !chunksDir.isDirectory()) {
-            log.error("Chunks directory does not exist or is not a directory: {}", chunksDir.getAbsolutePath());
             return null;
         }
 

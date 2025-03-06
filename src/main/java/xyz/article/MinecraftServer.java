@@ -140,14 +140,17 @@ public class MinecraftServer implements Server {
      * 停止并保存服务器
      */
     public static void stop() {
-        File saveDir = new File("./" + Settings.SAVE_FOLDER);
-        if (saveDir.mkdir()) log.info("正在创建存档文件夹");
-        RunningData.worldMap.forEach((key, world) -> {
-            File worldFile = new File(saveDir, key.namespace() + "_" + key.value());
-            if (worldFile.mkdir()) log.info("正在为世界 {} 创建文件夹", world.getKey());
-            world.stop(worldFile);
-        });
-        log.info("正在关闭服务器...");
-        server.close();
+        new Thread(() -> {
+            Thread.currentThread().setName("Close Thread");
+            File saveDir = new File("./" + Settings.SAVE_FOLDER);
+            if (saveDir.mkdir()) log.info("正在创建存档文件夹");
+            RunningData.worldMap.forEach((key, world) -> {
+                File worldFile = new File(saveDir, key.namespace() + "_" + key.value());
+                if (worldFile.mkdir()) log.info("正在为世界 {} 创建文件夹", world.getKey());
+                world.stop(worldFile);
+            });
+            log.info("正在关闭服务器...");
+            server.close();
+        }).start();
     }
 }
