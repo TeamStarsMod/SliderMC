@@ -1,9 +1,6 @@
 package xyz.article.world;
 
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.BitStorage;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.DataPalette;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.*;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
 import xyz.article.api.world.worldgen.PerlinNoise;
@@ -20,7 +17,7 @@ public class OverWorldGenerator extends WorldGenerator {
 
     public OverWorldGenerator(long seed, double terrainScale, double caveScale, double biomeScale) {
         super(12);
-        this.perlinNoise = new PerlinNoise(seed, 2, 0.4); // 地形噪声
+        this.perlinNoise = new PerlinNoise(seed, 4, 0.4); // 地形噪声
         this.caveNoise = new PerlinNoise(seed + 1, 1, 0.5); // 矿洞噪声
         //this.biomeNoise = new PerlinNoise(seed + 2, 1, 0.5); // 生物群系噪声
         this.terrainScale = terrainScale;

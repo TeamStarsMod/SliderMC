@@ -64,6 +64,16 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
                     throw new IllegalArgumentException("Unexpected direction: " + useItemOnPacket.getFace());
             }
 
+            if (player != null) {
+                int playerBlockX = (int) Math.floor(player.getX());
+                int playerBlockY = (int) Math.floor(player.getY());
+                int playerBlockZ = (int) Math.floor(player.getZ());
+
+                if ((blockX == playerBlockX && blockY == playerBlockY && blockZ == playerBlockZ) || (blockX == playerBlockX && blockY == playerBlockY + 1 && blockZ == playerBlockZ)) {
+                    return;
+                }
+            }
+
             int chunkX = blockX >> 4; // >> 4 == / 16
             int chunkZ = blockZ >> 4;
 
