@@ -118,7 +118,6 @@ public class World {
      */
     public @Nullable ChunkData getChunkFromSave(Vector2i pos) throws IOException {
         File chunksDir = new File("./" + Settings.SAVE_FOLDER + "/worlds/" + key.namespace() + "_" + key.value() + "/chunks");
-
         if (!chunksDir.exists() || !chunksDir.isDirectory()) {
             return null;
         }
@@ -215,5 +214,53 @@ public class World {
 
     public int getWorldAge() {
         return worldTick.getWorldAge();
+    }
+
+    /**
+     * 保存并卸载未被任何玩家加载的区块
+     */
+    public void saveAndUnloadUnusedChunks() {
+        File worldDir = new File(Settings.SAVE_FOLDER, "worlds/" + key.namespace() + "_" + key.value());
+        File chunksDir = new File(worldDir, "chunks");
+
+        // 确保区块目录存在
+        if (!chunksDir.exists() && !chunksDir.mkdirs()) {
+            log.error("无法创建区块目录: {}", chunksDir.getAbsolutePath());
+            return;
+        }
+
+        List<Vector2i> toRemove = new ArrayList<>();
+
+        // 遍历所有已加载的区块
+        chunkDataMap.forEach((pos, chunk) -> {
+            boolean isUsed = false;
+
+            // 检查是否有玩家加载了这个区块
+            for (Player player : players) {
+                if (player.getLoadedChunks().containsKey(pos)) {
+                    isUsed = true;
+                    break;
+                }
+            }
+
+            // 如果没有玩家使用则保存并标记移除
+            if (!isUsed) {
+                File chunkFile = new File(chunksDir, "chunk_" + pos.getX() + "_" + pos.getY() + ".slider");
+                try {
+                    chunk.serializeToFile(chunkFile);
+                    toRemove.add(pos);
+                    log.debug("已保存并卸载区块 ({}, {})", pos.getX(), pos.getY());
+                } catch (IOException e) {
+                    log.error("保存区块 ({}, {}) 失败: {}", pos.getX(), pos.getY(), e.getMessage());
+                }
+            }
+        });
+
+        // 从内存中移除未使用的区块
+        toRemove.forEach(chunkDataMap::remove);
+
+        if (!toRemove.isEmpty()) {
+            log.info("世界 {} 已保存并卸载 {} 个未使用区块", key, toRemove.size());
+        }
     }
 }

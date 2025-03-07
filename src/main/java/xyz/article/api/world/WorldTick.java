@@ -1,11 +1,9 @@
 package xyz.article.api.world;
 
-import net.kyori.adventure.key.Key;
 import org.cloudburstmc.math.vector.Vector2i;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundForgetLevelChunkPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetChunkCacheCenterPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetTimePacket;
-import xyz.article.RunningData;
 import xyz.article.Settings;
 import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
@@ -23,7 +21,8 @@ public class WorldTick {
     private final World world;
     private int worldTime = 0;
     private int worldAge = 0;
-    private long cacheTime = 0;
+    private long timeSetCacheTime = 0;
+    private long chunkSaveCacheTime = 0;
 
     public WorldTick(World world) {
         this.world = world;
@@ -40,18 +39,26 @@ public class WorldTick {
             worldAge++;
         }
         // 每隔一分钟向所有此世界的玩家发送时间更新包
-        if ((System.currentTimeMillis() - cacheTime) > 60000) {
+        if ((System.currentTimeMillis() - timeSetCacheTime) > 60000) {
+            timeSetCacheTime = System.currentTimeMillis();
+
             for (Player player : world.getPlayers()) {
                 player.sendPacket(new ClientboundSetTimePacket(worldAge, worldTime));
             }
-            cacheTime = System.currentTimeMillis();
+        }
+
+        // 每隔设定时间保存一次未加载区块
+        if ((System.currentTimeMillis() - chunkSaveCacheTime) > (60000L * Settings.CHUNK_SAVE_TIME_MINUTE)) {
+            chunkSaveCacheTime = System.currentTimeMillis();
+
+            new Thread(() -> {
+                Thread.currentThread().setName(world.getKey() + " Save Thread");
+                world.saveAndUnloadUnusedChunks();
+            }).start();
         }
 
         for (Player player : world.getPlayers()) {
             int viewDistance = Settings.VIEW_DISTANCE;
-            if (Settings.SHOULD_SEND_MORE_VIEW_DATA) {
-                viewDistance += 2; // 如果选项开启，则发送更多数据来让客户端看不到世界边缘，增强体验 (对性能有影响)
-            }
             long maxSquared = (long) viewDistance * viewDistance;
 
             ChunkPos playerChunkPos = Slider.getChunkPos(player);

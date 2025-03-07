@@ -24,6 +24,7 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.play
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundSetCarriedItemPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.inventory.ClientboundContainerSetContentPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetChunkCacheCenterPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetChunkCacheRadiusPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetTimePacket;
 import org.slf4j.Logger;
@@ -105,6 +106,7 @@ public class LoginHandler implements ServerLoginHandler {
         session.send(new ClientboundServerBrandPacket("SliderMC - Rebuild").getPacket());
         // 发送视野距离数据包
         session.send(new ClientboundSetChunkCacheRadiusPacket(Settings.VIEW_DISTANCE));
+        session.send(new ClientboundSetChunkCacheCenterPacket(((int) player.getX()) >> 4, ((int) player.getZ() >> 4)));
         // 保持玩家客户端位置与player实体同步
         session.send(new ClientboundPlayerPositionPacket(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch(), new Random().nextInt()));
         // 保持玩家客户端物品栏同步

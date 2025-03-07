@@ -14,10 +14,10 @@ public class Settings {
     public static int SERVER_PORT;
     public static int MAX_PLAYERS;
     public static int VIEW_DISTANCE;
-    public static boolean SHOULD_SEND_MORE_VIEW_DATA;
     public static boolean ONLINE_MODE;
     public static boolean SHOULD_PING_SHOWN;
     public static String SAVE_FOLDER = "save";
+    public static int CHUNK_SAVE_TIME_MINUTE;
 
     private static File propertiesFile;
 
@@ -29,8 +29,8 @@ public class Settings {
         MAX_PLAYERS = (int) readAndCheck("max-players", 20);
         ONLINE_MODE = (boolean) readAndCheck("online-mode", true);
         VIEW_DISTANCE = (int) readAndCheck("view-distance", 10);
-        SHOULD_SEND_MORE_VIEW_DATA = (boolean) readAndCheck("should-send-more-view-data", false);
         SHOULD_PING_SHOWN = (boolean) readAndCheck("should-ping-shown", false);
+        CHUNK_SAVE_TIME_MINUTE = (int) readAndCheck("chunk-save-time-minute", 30);
     }
 
     public static Object readAndCheck(String key, Object defaultValue) throws IOException {
