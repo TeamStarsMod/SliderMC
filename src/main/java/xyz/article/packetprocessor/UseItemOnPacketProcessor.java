@@ -9,9 +9,11 @@ import org.geysermc.mcprotocollib.network.packet.Packet;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.Animation;
 import org.geysermc.mcprotocollib.protocol.data.game.item.ItemStack;
+import org.geysermc.mcprotocollib.protocol.data.game.level.block.BlockChangeEntry;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundSystemChatPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundAnimatePacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundBlockChangedAckPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundBlockUpdatePacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.player.ServerboundUseItemOnPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,7 +117,7 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
                     // 发送区块更新包
                     session.send(new ClientboundBlockChangedAckPacket(useItemOnPacket.getSequence()));
                     for (Player player1 : player.getWorld().getPlayers()) {
-                        player1.sendPacket(chunkData.getPacket());
+                        player1.sendPacket(new ClientboundBlockUpdatePacket(new BlockChangeEntry(Vector3i.from(blockX, blockY, blockZ), blockID)));
                         if (!(player1.getSession().equals(session))) {
                             player1.sendPacket(new ClientboundAnimatePacket(Objects.requireNonNull(Slider.getPlayer(session)).getEntityId(), Animation.SWING_ARM));
                         }

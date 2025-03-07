@@ -33,8 +33,8 @@ public class ServerInfoBuildHandler implements ServerInfoBuilder {
         // 原始格式的字符串
         String rawText = "SliderMC - Rebuild";
         // 定义渐变起止颜色（蓝 -> 绿）
-        TextColor startColor = TextColor.fromHexString("#0248ff");
-        TextColor endColor = TextColor.fromHexString("#00ff4b");
+        TextColor startColor = TextColor.fromHexString("#00bcff");
+        TextColor endColor = TextColor.fromHexString("#ff6800");
         TextComponent.Builder builder = Component.text();
         char[] chars = rawText.toCharArray();
         int length = chars.length;

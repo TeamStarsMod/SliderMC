@@ -9,6 +9,8 @@ import org.geysermc.mcprotocollib.protocol.MinecraftConstants;
 import org.geysermc.mcprotocollib.protocol.ServerLoginHandler;
 import org.geysermc.mcprotocollib.protocol.data.game.PlayerListEntry;
 import org.geysermc.mcprotocollib.protocol.data.game.PlayerListEntryAction;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.EquipmentSlot;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.Equipment;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.GameMode;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.PlayerSpawnInfo;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.type.EntityType;
@@ -16,11 +18,14 @@ import org.geysermc.mcprotocollib.protocol.packet.common.clientbound.Clientbound
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundLoginPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundPlayerInfoUpdatePacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundSystemChatPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundSetEquipmentPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundPlayerAbilitiesPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundPlayerPositionPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundSetCarriedItemPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.inventory.ClientboundContainerSetContentPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetChunkCacheRadiusPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetTimePacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
@@ -31,6 +36,7 @@ import xyz.article.api.entities.player.Player;
 import xyz.article.api.entities.player.PlayerAbilities;
 import xyz.article.api.event.events.PlayerJoinEvent;
 import xyz.article.api.inventory.PlayerInventory;
+import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.packets.ClientboundServerBrandPacket;
 
 import java.io.File;
@@ -103,8 +109,11 @@ public class LoginHandler implements ServerLoginHandler {
         session.send(new ClientboundPlayerPositionPacket(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch(), new Random().nextInt()));
         // 保持玩家客户端物品栏同步
         session.send(new ClientboundContainerSetContentPacket(0, 0, player.getInventory().getItems(), player.getInventory().getDraggingItem()));
+        session.send(new ClientboundSetCarriedItemPacket(player.getMainHand().getCurrentSlot()));
         // 保持玩家能力同步
         session.send(player.getPlayerAbilities().getPacket());
+        // 保持世界时间同步
+        session.send(new ClientboundSetTimePacket(player.getWorld().getWorldAge(), player.getWorld().getWorldTime()));
 
         // 将玩家添加到RunningData的各个数据列表中
         RunningData.globalEntities.add(player.getEntityId());
@@ -113,10 +122,9 @@ public class LoginHandler implements ServerLoginHandler {
         RunningData.globalPlayers.add(player);
 
         // 同步玩家属性
-        for (Session session1 : RunningData.globalSessions) {
-            session1.send(new ClientboundSystemChatPacket(joinEvent.getJoinMessage(), false));
+        for (Player player1 : RunningData.globalPlayers) {
             EnumSet<PlayerListEntryAction> actions = EnumSet.of(PlayerListEntryAction.ADD_PLAYER, PlayerListEntryAction.UPDATE_GAME_MODE, PlayerListEntryAction.UPDATE_LATENCY, PlayerListEntryAction.UPDATE_LISTED);
-            session1.send(new ClientboundPlayerInfoUpdatePacket(actions, new PlayerListEntry[]{new PlayerListEntry(
+            player1.sendPacket(new ClientboundPlayerInfoUpdatePacket(actions, new PlayerListEntry[]{new PlayerListEntry(
                     player.getProfile().getId(),
                     player.getProfile(),
                     true,
@@ -128,10 +136,8 @@ public class LoginHandler implements ServerLoginHandler {
                     null,
                     null
             )}));
-            if (!session1.equals(session)) {
-                session1.send(new ClientboundAddEntityPacket(player.getEntityId(), profile.getId(), EntityType.PLAYER, player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch(), 0));
-            }
         }
+
         List<PlayerListEntry> list = new ArrayList<>();
         for (Player player1 : RunningData.globalPlayers) {
             list.add(new PlayerListEntry(
@@ -149,10 +155,21 @@ public class LoginHandler implements ServerLoginHandler {
         }
         EnumSet<PlayerListEntryAction> actions1 = EnumSet.of(PlayerListEntryAction.ADD_PLAYER, PlayerListEntryAction.UPDATE_GAME_MODE, PlayerListEntryAction.UPDATE_LATENCY, PlayerListEntryAction.UPDATE_LISTED);
         session.send(new ClientboundPlayerInfoUpdatePacket(actions1, list.toArray(new PlayerListEntry[0])));
-        for (Player player1 : RunningData.globalPlayers) {
+
+        List<ClientboundSetEquipmentPacket> clientboundSetEquipmentPacketList = new ArrayList<>();
+        for (Player player1 : player.getWorld().getPlayers()) {
             if (!player1.equals(player)) {
                 session.send(new ClientboundAddEntityPacket(player1.getEntityId(), player1.getProfile().getId(), EntityType.PLAYER, player1.getX(), player1.getY(), player1.getZ(), player1.getYaw(), player1.getPitch(), 0));
+                clientboundSetEquipmentPacketList.add(new ClientboundSetEquipmentPacket(player1.getEntityId(), new Equipment[]{new Equipment(EquipmentSlot.MAIN_HAND, player1.getMainHand().getCurrentItem())}));
+                clientboundSetEquipmentPacketList.add(new ClientboundSetEquipmentPacket(player1.getEntityId(), new Equipment[]{new Equipment(EquipmentSlot.OFF_HAND, player1.getLeftHand().getCurrentItem())}));
+                player1.sendPacket(new ClientboundSetEquipmentPacket(player.getEntityId(), new Equipment[]{new Equipment(EquipmentSlot.MAIN_HAND, player.getMainHand().getCurrentItem())}));
+                player1.sendPacket(new ClientboundSetEquipmentPacket(player.getEntityId(), new Equipment[]{new Equipment(EquipmentSlot.OFF_HAND, player.getLeftHand().getCurrentItem())}));
+                player1.sendPacket(new ClientboundSystemChatPacket(joinEvent.getJoinMessage(), false));
+                player1.sendPacket(new ClientboundAddEntityPacket(player.getEntityId(), profile.getId(), EntityType.PLAYER, player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch(), 0));
             }
+        }
+        for (ClientboundSetEquipmentPacket packet : clientboundSetEquipmentPacketList) {
+            session.send(packet);
         }
 
         // 完成Login

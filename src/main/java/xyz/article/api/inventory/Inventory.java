@@ -12,6 +12,7 @@ public class Inventory {
     private int containerId;
     private ContainerType containerType;
     private String name;
+    private int stateId;
 
     /**
      * 创建一个新的物品栏
@@ -20,12 +21,13 @@ public class Inventory {
      * @param size 物品栏的大小
      * @param containerType 物品栏的类别
      */
-    public Inventory(String name, int containerId, int size, ContainerType containerType) {
+    public Inventory(String name, int containerId, int size, ContainerType containerType, int stateId) {
         this.containerId = containerId;
         this.size = size;
         this.items = new ItemStack[size];
         this.containerType = containerType;
         this.name = name;
+        this.stateId = stateId;
     }
 
     public int getSize() {
@@ -64,5 +66,13 @@ public class Inventory {
     }
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setStateId(int stateId) {
+        this.stateId = stateId;
+    }
+
+    public int getStateId() {
+        return stateId;
     }
 }

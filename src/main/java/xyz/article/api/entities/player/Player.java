@@ -255,7 +255,8 @@ public class Player {
 
         NbtMapBuilder builder = NbtMap.builder()
                 .putInt("id", item.getId())
-                .putInt("count", item.getAmount());
+                .putInt("count", item.getAmount())
+                .putInt("slot", hand.getCurrentSlot());
 
         /*if (item.getDataComponents() != null) {
             builder.putCompound("nbt", item.getDataComponents());
@@ -339,7 +340,9 @@ public class Player {
             NbtMap mainHandNbt = nbt.getCompound("mainHand");
             if (!mainHandNbt.isEmpty()) {
                 ItemStack mainHandItem = deserializeItem(mainHandNbt);
+                int slot = mainHandNbt.getInt("slot");
                 player.getMainHand().setCurrentItem(mainHandItem);
+                player.getMainHand().setCurrentSlot(slot);
             }
 
             NbtMap offHandNbt = nbt.getCompound("offHand");

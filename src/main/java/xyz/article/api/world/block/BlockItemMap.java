@@ -1,14 +1,19 @@
 package xyz.article.api.world.block;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class BlockItemMap {
     private static final Map<Integer, Integer> itemToBlockMap = new HashMap<>(); // 物品ID到方块ID的映射
     private static final Map<Integer, Integer> blockToItemMap = new HashMap<>(); // 方块ID到物品ID的映射
+    private static final Logger log = LoggerFactory.getLogger(BlockItemMap.class);
 
     public static void writeMap() {
         // 初始化映射表
+        log.info("正在写入方块映射表");
         itemToBlockMap.put(1327, 26644);
         itemToBlockMap.put(407, 16755);
         itemToBlockMap.put(971, 1803);
@@ -922,6 +927,7 @@ public class BlockItemMap {
         itemToBlockMap.put(72, 7511);
         itemToBlockMap.put(591, 12805);
         itemToBlockMap.put(652, 24991);
+        log.info("写入完成");
 
         // 同时填充方块到物品的映射
         for (Map.Entry<Integer, Integer> entry : itemToBlockMap.entrySet()) {

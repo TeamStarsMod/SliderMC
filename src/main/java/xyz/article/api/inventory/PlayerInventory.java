@@ -9,10 +9,10 @@ public class PlayerInventory extends Inventory {
     private ItemStack draggingItem;
 
     /**
-     * 创建一个新的玩家物品栏(名称null, ID 0, 大小46, 类别null)
+     * 创建一个新的玩家物品栏(名称null, ID 0, 大小46, 类别null, State 0)
      */
     public PlayerInventory() {
-        super(null, 0, 46, null);
+        super(null, 0, 46, null, 0);
     }
 
     /**

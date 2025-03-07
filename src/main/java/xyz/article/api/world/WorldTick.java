@@ -23,6 +23,7 @@ public class WorldTick {
     private final World world;
     private int worldTime = 0;
     private int worldAge = 0;
+    private long cacheTime = 0;
 
     public WorldTick(World world) {
         this.world = world;
@@ -38,9 +39,12 @@ public class WorldTick {
             worldTime = 0;
             worldAge++;
         }
-        // 向所有此世界的玩家发送时间更新包
-        for (Player player : world.getPlayers()) {
-            player.sendPacket(new ClientboundSetTimePacket(worldAge, worldTime));
+        // 每隔一分钟向所有此世界的玩家发送时间更新包
+        if ((System.currentTimeMillis() - cacheTime) > 60000) {
+            for (Player player : world.getPlayers()) {
+                player.sendPacket(new ClientboundSetTimePacket(worldAge, worldTime));
+            }
+            cacheTime = System.currentTimeMillis();
         }
 
         for (Player player : world.getPlayers()) {

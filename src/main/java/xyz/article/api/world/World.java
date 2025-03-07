@@ -123,23 +123,12 @@ public class World {
             return null;
         }
 
-        File[] files = chunksDir.listFiles();
-        if (files == null) {
+        File file = new File(chunksDir, "chunk_" + pos.getX() + "_" + pos.getY() + ".slider");
+        if (file.exists()) {
+            return ChunkData.deserializeFromFile(file);
+        } else {
             return null;
         }
-
-        for (File file : files) {
-            if (file.getName().endsWith(".slider")) {
-                String fileName = file.getName().replace(".slider", "");
-                String[] part = fileName.split("_");
-
-                if (part.length == 3 && Integer.parseInt(part[1]) == pos.getX() && Integer.parseInt(part[2]) == pos.getY()) {
-                    return ChunkData.deserializeFromFile(file);
-                }
-            }
-        }
-
-        return null;
     }
 
     /**
@@ -218,5 +207,13 @@ public class World {
         }*/
 
         return null;
+    }
+
+    public int getWorldTime() {
+        return worldTick.getWorldTime();
+    }
+
+    public int getWorldAge() {
+        return worldTick.getWorldAge();
     }
 }
