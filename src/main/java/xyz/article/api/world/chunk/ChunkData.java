@@ -443,7 +443,6 @@ public class ChunkData {
                         helper.writeVarInt(buf, state);
                     }
                     biomeDataPalette = new DataPalette(new ListPalette(biomeDataBitsPerEntry, buf, helper), new BitStorage(biomeDataBitsPerEntry, 16 * 16 * 16, biomeDataData), PaletteType.BIOME);
-                    System.out.println(1);
                 }
                 case 2 -> {
                     int[] paletteData = biomeDataNbt.getIntArray("paletteData");
@@ -456,7 +455,6 @@ public class ChunkData {
                     buf.readerIndex(0);
                     MapPalette mapPalette = new MapPalette(biomeDataBitsPerEntry, buf, helper);
                     biomeDataPalette = new DataPalette(mapPalette, new BitStorage(biomeDataBitsPerEntry, 16 * 16 * 16, biomeDataData), PaletteType.BIOME);
-                    System.out.println(2);
                 }
                 case 3 -> {
                     int singletonState = biomeDataNbt.getInt("singletonState");
