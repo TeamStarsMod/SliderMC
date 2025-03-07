@@ -14,6 +14,7 @@ import org.geysermc.mcprotocollib.protocol.data.game.item.ItemStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
+import xyz.article.api.entities.EntityID;
 import xyz.article.api.inventory.PlayerInventory;
 import xyz.article.api.world.World;
 import xyz.article.api.world.chunk.ChunkData;
@@ -191,7 +192,6 @@ public class Player {
                 .putDouble("z", locationZ)
                 .putFloat("yaw", angleYaw)
                 .putFloat("pitch", anglePitch)
-                .putInt("entityId", entityId)
                 .putString("gameMode", gameMode.name());
 
         // 序列化Profile
@@ -281,7 +281,6 @@ public class Player {
             double z = nbt.getDouble("z");
             float yaw = nbt.getFloat("yaw");
             float pitch = nbt.getFloat("pitch");
-            int entityId = nbt.getInt("entityId");
             GameMode gameMode = GameMode.valueOf(nbt.getString("gameMode"));
 
             // 解析Profile
@@ -325,7 +324,7 @@ public class Player {
 
             // 创建玩家实例
             Player player = new Player(
-                    entityId,
+                    EntityID.getRandomEntityId(),
                     session,
                     profile,
                     inventory,
