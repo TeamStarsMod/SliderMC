@@ -1,14 +1,11 @@
 package xyz.article.api.world.chunk;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import net.kyori.adventure.key.Key;
 import org.cloudburstmc.math.vector.Vector2i;
 import org.cloudburstmc.nbt.*;
 import org.geysermc.mcprotocollib.protocol.codec.MinecraftCodecHelper;
-import org.geysermc.mcprotocollib.protocol.codec.NbtComponentSerializer;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.BitStorage;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.DataPalette;
@@ -21,15 +18,12 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
-import xyz.article.api.world.chunk.palette.PaletteID;
 
 import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 /**
  * Chunk数据
@@ -246,7 +240,11 @@ public class ChunkData {
             NbtMapBuilder chunkDataBuilder = NbtMap.builder();
             chunkDataBuilder.putInt("bitsPerEntry", chunkDataPalette.getStorage().getBitsPerEntry());
             chunkDataBuilder.putLongArray("chunkData", chunkDataPalette.getStorage().getData());
-            chunkDataBuilder.putInt("paletteType", getPaletteTypeNumber(chunkDataPalette.getPalette()));
+            chunkDataBuilder.putInt("paletteType", getPaletteTypeId(chunkDataPalette.getPalette()));
+            if (chunkDataPalette.getPalette() instanceof ListPalette listPalette) {
+                int[] data = listPalette.getData();
+                chunkDataBuilder.putIntArray("paletteData", data);
+            }
             sectionBuilder.putCompound("chunkDataPalette", chunkDataBuilder.build());
 
             // 序列化生物群系数据
@@ -254,7 +252,11 @@ public class ChunkData {
             NbtMapBuilder biomeDataBuilder = NbtMap.builder();
             biomeDataBuilder.putInt("bitsPerEntry", biomeDataPalette.getStorage().getBitsPerEntry());
             biomeDataBuilder.putLongArray("biomeData", biomeDataPalette.getStorage().getData());
-            biomeDataBuilder.putInt("paletteType", getPaletteTypeNumber(biomeDataPalette.getPalette()));
+            biomeDataBuilder.putInt("paletteType", getPaletteTypeId(biomeDataPalette.getPalette()));
+            if (biomeDataPalette.getPalette() instanceof ListPalette listPalette) {
+                int[] data = listPalette.getData();
+                biomeDataBuilder.putIntArray("paletteData", data);
+            }
             sectionBuilder.putCompound("biomeDataPalette", biomeDataBuilder.build());
 
             sectionBuilder.putInt("blockCount", chunkSection.getBlockCount());
@@ -280,16 +282,28 @@ public class ChunkData {
 
         // 序列化 lightUpdateData
         NbtMapBuilder lightUpdateDataBuilder = NbtMap.builder();
-        lightUpdateDataBuilder.putList("skyUpdates", NbtType.BYTE_ARRAY, lightUpdateData.getSkyUpdates());
-        lightUpdateDataBuilder.putList("blockUpdates", NbtType.BYTE_ARRAY, lightUpdateData.getBlockUpdates());
-        lightUpdateDataBuilder.putInt("skyYMaskSize", lightUpdateData.getSkyYMask().size());
-        lightUpdateDataBuilder.putList("skyYMask", NbtType.BYTE_ARRAY, lightUpdateData.getSkyYMask().toByteArray());
-        lightUpdateDataBuilder.putInt("blockYMaskSize", lightUpdateData.getBlockYMask().size());
-        lightUpdateDataBuilder.putList("blockYMask", NbtType.BYTE_ARRAY, lightUpdateData.getBlockYMask().toByteArray());
-        lightUpdateDataBuilder.putInt("emptySkyYMaskSize", lightUpdateData.getEmptySkyYMask().size());
-        lightUpdateDataBuilder.putList("emptySkyYMask", NbtType.BYTE_ARRAY, lightUpdateData.getEmptySkyYMask().toByteArray());
-        lightUpdateDataBuilder.putInt("emptyBlockYMaskSize", lightUpdateData.getEmptyBlockYMask().size());
-        lightUpdateDataBuilder.putList("emptyBlockYMask", NbtType.BYTE_ARRAY, lightUpdateData.getEmptyBlockYMask().toByteArray());
+
+        lightUpdateDataBuilder.putByteArray("skyYMask",
+                serializeBitSet(lightUpdateData.getSkyYMask(), 24));
+        lightUpdateDataBuilder.putByteArray("blockYMask",
+                serializeBitSet(lightUpdateData.getBlockYMask(), 24));
+        lightUpdateDataBuilder.putByteArray("emptySkyYMask",
+                serializeBitSet(lightUpdateData.getEmptySkyYMask(), 24));
+        lightUpdateDataBuilder.putByteArray("emptyBlockYMask",
+                serializeBitSet(lightUpdateData.getEmptyBlockYMask(), 24));
+
+        // 记录每个BitSet的实际位数
+        lightUpdateDataBuilder.putInt("skyYMaskBits", 24);
+        lightUpdateDataBuilder.putInt("blockYMaskBits", 24);
+        lightUpdateDataBuilder.putInt("emptySkyYMaskBits", 24);
+        lightUpdateDataBuilder.putInt("emptyBlockYMaskBits", 24);
+
+        // 保留原有光照数据写入
+        lightUpdateDataBuilder.putList("skyUpdates", NbtType.BYTE_ARRAY,
+                lightUpdateData.getSkyUpdates());
+        lightUpdateDataBuilder.putList("blockUpdates", NbtType.BYTE_ARRAY,
+                lightUpdateData.getBlockUpdates());
+
         nbtBuilder.putCompound("lightUpdateData", lightUpdateDataBuilder.build());
 
         // 将 NBT 数据写入文件
@@ -302,6 +316,14 @@ public class ChunkData {
         } catch (Exception e) {
             log.error(e.toString());
         }
+    }
+
+    private static byte[] serializeBitSet(BitSet bitSet, int expectedSize) {
+        byte[] bytes = bitSet.toByteArray();
+        if (bytes.length * 8 >= expectedSize) {
+            return bytes;
+        }
+        return Arrays.copyOf(bytes, (expectedSize + 7) / 8);
     }
 
     /**
@@ -343,14 +365,65 @@ public class ChunkData {
             int chunkDataBitsPerEntry = chunkDataNbt.getInt("bitsPerEntry");
             long[] chunkDataData = chunkDataNbt.getLongArray("chunkData");
 
-            DataPalette chunkDataPalette = PaletteID.getPaletteFromID(chunkDataNbt.getInt("paletteType"), new BitStorage(chunkDataBitsPerEntry, 16 * 16 * 16, chunkDataData), PaletteType.CHUNK);
+            DataPalette chunkDataPalette;
+            switch (chunkDataNbt.getInt("paletteType")) {
+                // 0 = GlobalPalette
+                // 1 = ListPalette
+                // 2 = MapPalette
+                // 3 = SingletonPalette
+                case 0 -> chunkDataPalette = new DataPalette(GlobalPalette.INSTANCE, new BitStorage(chunkDataBitsPerEntry, 16 * 16 * 16, chunkDataData), PaletteType.CHUNK);
+                case 1 -> {
+                    int[] data = chunkDataNbt.getIntArray("paletteData");
+                    MinecraftCodecHelper helper = new MinecraftCodecHelper(); // 写入原ListPalette数据
+                    ByteBuf buf = Unpooled.buffer();
+                    helper.writeVarInt(buf, data.length);
+                    for (int state : data) {
+                        helper.writeVarInt(buf, state);
+                    }
+                    chunkDataPalette = new DataPalette(new ListPalette(chunkDataBitsPerEntry, buf, helper), new BitStorage(chunkDataBitsPerEntry, 16 * 16 * 16, chunkDataData), PaletteType.CHUNK);
+                }
+                case 2 -> {
+                    throw new IllegalArgumentException("调色板类型 MapPalette (ID 2) 尚未支持！");
+                }
+                case 3 -> {
+                    throw new IllegalArgumentException("调色板类型 SingletonPalette (ID 3) 尚未支持！");
+                }
+                default -> {
+                    throw new IllegalArgumentException("未知的调色板类型！");
+                }
+            }
 
             // 反序列化生物群系数据
             NbtMap biomeDataNbt = sectionNbt.getCompound("biomeDataPalette");
             int biomeDataBitsPerEntry = biomeDataNbt.getInt("bitsPerEntry");
             long[] biomeDataData = biomeDataNbt.getLongArray("biomeData");
-            DataPalette biomeDataPalette = PaletteID.getPaletteFromID(biomeDataNbt.getInt("paletteType"), new BitStorage(biomeDataBitsPerEntry, 16 * 16 * 16, biomeDataData), PaletteType.BIOME);
-
+            DataPalette biomeDataPalette;
+            switch (biomeDataNbt.getInt("paletteType")) {
+                // 0 = GlobalPalette
+                // 1 = ListPalette
+                // 2 = MapPalette
+                // 3 = SingletonPalette
+                case 0 -> biomeDataPalette = new DataPalette(GlobalPalette.INSTANCE, new BitStorage(biomeDataBitsPerEntry, 16 * 16 * 16, biomeDataData), PaletteType.BIOME);
+                case 1 -> {
+                    int[] data = biomeDataNbt.getIntArray("paletteData");
+                    MinecraftCodecHelper helper = new MinecraftCodecHelper(); // 写入原ListPalette数据
+                    ByteBuf buf = Unpooled.buffer();
+                    helper.writeVarInt(buf, data.length);
+                    for (int state : data) {
+                        helper.writeVarInt(buf, state);
+                    }
+                    biomeDataPalette = new DataPalette(new ListPalette(biomeDataBitsPerEntry, buf, helper), new BitStorage(biomeDataBitsPerEntry, 16 * 16 * 16, biomeDataData), PaletteType.BIOME);
+                }
+                case 2 -> {
+                    throw new IllegalArgumentException("调色板类型 MapPalette (ID 2) 尚未支持！");
+                }
+                case 3 -> {
+                    throw new IllegalArgumentException("调色板类型 SingletonPalette (ID 3) 尚未支持！");
+                }
+                default -> {
+                    throw new IllegalArgumentException("未知的调色板类型！");
+                }
+            }
             // 创建 ChunkSection
             int blockCount = sectionNbt.getInt("blockCount");
             chunkSections[i] = new ChunkSection(blockCount, chunkDataPalette, biomeDataPalette);
@@ -374,22 +447,45 @@ public class ChunkData {
 
         // 反序列化 lightUpdateData
         NbtMap lightUpdateDataNbt = nbt.getCompound("lightUpdateData");
-        List<byte[]> skyUpdates = lightUpdateDataNbt.getList("skyUpdates", NbtType.BYTE_ARRAY);
-        List<byte[]> blockUpdates = lightUpdateDataNbt.getList("blockUpdates", NbtType.BYTE_ARRAY);
-        BitSet skyYMask = BitSet.valueOf(lightUpdateDataNbt.getByteArray("skyYMask"));
-        BitSet blockYMask = BitSet.valueOf(lightUpdateDataNbt.getByteArray("blockYMask"));
-        BitSet emptySkyYMask = BitSet.valueOf(lightUpdateDataNbt.getByteArray("emptySkyYMask"));
-        BitSet emptyBlockYMask = BitSet.valueOf(lightUpdateDataNbt.getByteArray("emptyBlockYMask"));
+
+        BitSet skyYMask = readBitSet(
+                lightUpdateDataNbt.getByteArray("skyYMask"),
+                lightUpdateDataNbt.getInt("skyYMaskBits"));
+        BitSet blockYMask = readBitSet(
+                lightUpdateDataNbt.getByteArray("blockYMask"),
+                lightUpdateDataNbt.getInt("blockYMaskBits"));
+        BitSet emptySkyYMask = readBitSet(
+                lightUpdateDataNbt.getByteArray("emptySkyYMask"),
+                lightUpdateDataNbt.getInt("emptySkyYMaskBits"));
+        BitSet emptyBlockYMask = readBitSet(
+                lightUpdateDataNbt.getByteArray("emptyBlockYMask"),
+                lightUpdateDataNbt.getInt("emptyBlockYMaskBits"));
+
         LightUpdateData lightUpdateData = new LightUpdateData(
-                skyYMask, blockYMask, emptySkyYMask, emptyBlockYMask,
-                skyUpdates, blockUpdates
+                skyYMask,
+                blockYMask,
+                emptySkyYMask,
+                emptyBlockYMask,
+                lightUpdateDataNbt.getList("skyUpdates", NbtType.BYTE_ARRAY),
+                lightUpdateDataNbt.getList("blockUpdates", NbtType.BYTE_ARRAY)
         );
 
         // 创建并返回 ChunkData 对象
         return new ChunkData(chunkPos, chunkSections, heightMap, blockEntityInfos, lightUpdateData);
     }
 
-    private static int getPaletteTypeNumber(Palette palette) {
+    private static BitSet readBitSet(byte[] bytes, int bitLength) {
+        BitSet bitSet = BitSet.valueOf(bytes);
+        // 截断到指定长度
+        if (bitSet.length() > bitLength) {
+            return bitSet.get(0, bitLength);
+        }
+        // 扩展到位长度
+        bitSet.clear(bitLength, Integer.MAX_VALUE);
+        return bitSet;
+    }
+
+    private static int getPaletteTypeId(Palette palette) {
         if (palette instanceof GlobalPalette) {
             return 0;
         } else if (palette instanceof ListPalette) {

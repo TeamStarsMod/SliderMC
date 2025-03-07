@@ -2,20 +2,18 @@ package xyz.article.api.world;
 
 import net.kyori.adventure.key.Key;
 import org.cloudburstmc.math.vector.Vector2i;
-import org.cloudburstmc.nbt.NbtMap;
-import org.cloudburstmc.nbt.NbtMapBuilder;
-import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundForgetLevelChunkPacket;
+import org.cloudburstmc.nbt.*;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.Settings;
-import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
 import xyz.article.api.world.worldgen.WorldGenerator;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
@@ -77,23 +75,40 @@ public class World {
      * @param dir 保存世界的文件夹
      */
     public void stop(File dir) {
-        stopTicking();
-        log.info("正在保存世界 {}", key);
-        NbtMapBuilder nbtMapBuilder = NbtMap.builder();
-        nbtMapBuilder.putInt("worldAge", worldTick.getWorldAge());
-        nbtMapBuilder.putInt("worldTime", worldTick.getWorldTime());
-        nbtMapBuilder.putString("worldKey", key.value());
-        File chunksDir = new File(dir, "chunks");
-        if (chunksDir.mkdir()) log.info("正在为世界 {} 创建区块文件夹", key);
-        chunkDataMap.forEach((chunkPos, chunkData) -> {
-            File chunkDataFile = new File(chunksDir, "chunk_" + chunkPos.getX() + "_" + chunkPos.getY() + ".slider");
-            try {
-                chunkData.serializeToFile(chunkDataFile);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+        try {
+            stopTicking();
+            log.info("正在保存世界 {}", key);
+            File chunksDir = new File(dir, "chunks");
+            if (chunksDir.mkdir()) log.info("正在为世界 {} 创建区块文件夹", key);
+            chunkDataMap.forEach((chunkPos, chunkData) -> {
+                File chunkDataFile = new File(chunksDir, "chunk_" + chunkPos.getX() + "_" + chunkPos.getY() + ".slider");
+                try {
+                    chunkData.serializeToFile(chunkDataFile);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            });
+            log.info("世界 {} 保存完成", key);
+
+            NbtMapBuilder nbtMapBuilder = NbtMap.builder();
+            nbtMapBuilder.putInt("worldAge", worldTick.getWorldAge());
+            nbtMapBuilder.putInt("worldTime", worldTick.getWorldTime());
+            nbtMapBuilder.putString("worldKey", key.value());
+            File worldSave = new File(dir, "world.slider");
+            if (worldSave.createNewFile()) log.info("正在创建世界存档文件");
+            // 将 NBT 数据写入文件
+            try (FileOutputStream fos = new FileOutputStream(worldSave)) {
+                NbtMap nbt = nbtMapBuilder.build();
+                NBTOutputStream nbtOutputStream = NbtUtils.createWriter(fos);
+                nbtOutputStream.writeValue(nbt);
+                nbtOutputStream.close();
+                fos.flush();
+            } catch (Exception e) {
+                log.error(e.toString());
             }
-        });
-        log.info("世界 {} 保存完成", key);
+        } catch (IOException e) {
+            log.info("在保存世界 {} 时发生错误！{}", key, e.toString());
+        }
     }
 
     /**
@@ -102,7 +117,7 @@ public class World {
      * @return 区块数据
      */
     public @Nullable ChunkData getChunkFromSave(Vector2i pos) throws IOException {
-        File chunksDir = new File("./" + Settings.SAVE_FOLDER + "/" + key.namespace() + "_" + key.value() + "/chunks");
+        File chunksDir = new File("./" + Settings.SAVE_FOLDER + "/worlds/" + key.namespace() + "_" + key.value() + "/chunks");
 
         if (!chunksDir.exists() || !chunksDir.isDirectory()) {
             return null;
@@ -178,5 +193,30 @@ public class World {
 
     public WorldGenerator getGenerator () {
         return generator;
+    }
+
+    /**
+     * 未完成
+     * 从世界存档NBT文件中获取世界
+     * @param worldSaveFile 世界存档文件 (world.slider)
+     * @return 获取到的世界 (可能发生错误并返回null)
+     */
+    @Deprecated
+    public static @Nullable World getWorldFromSave(File worldSaveFile) {
+        // TODO: 由于无法获取自定义世界生成器的种子与参数，且无法确定Generator的实例，未制作，请完成此方法的功能
+
+        /*try (FileInputStream fis = new FileInputStream(worldSaveFile)) {
+            NBTInputStream nbtInputStream = NbtUtils.createReader(fis);
+            NbtMap nbt = nbtInputStream.readValue(NbtType.COMPOUND);
+            int worldAge = nbt.getInt("worldAge");
+            int worldTime = nbt.getInt("worldTime");
+            Key worldKey = Key.key(nbt.getString("worldKey"));
+            return new World(worldKey, new OverWorldGenerator(114514L));
+        } catch (Exception e) {
+            log.error("发生错误！{}", e.toString());
+            return null;
+        }*/
+
+        return null;
     }
 }
