@@ -47,6 +47,7 @@ public class MinecraftServer implements Server {
     public static EventManager eventManager;
     public static PluginManager pluginManager;
     private static final Logger log = LoggerFactory.getLogger(MinecraftServer.class);
+    private static final File saveDir = new File("./" + Settings.SAVE_FOLDER);
 
     public static void main(String[] args) throws IOException {
         long start = System.currentTimeMillis();
@@ -74,6 +75,18 @@ public class MinecraftServer implements Server {
                     GameProfile profile = event.getSession().getFlag(MinecraftConstants.PROFILE_KEY);
                     Player player = Slider.getPlayer(event.getSession());
                     log.info("{} 离开了游戏", profile.getName());
+                    if (saveDir.mkdir()) log.info("正在创建存档文件夹");
+                    File playerSaveDir = new File(saveDir, "playerdata");
+                    if (playerSaveDir.mkdir()) log.info("正在创建玩家存档文件夹");
+                    if (player != null) {
+                        File playerFile = new File(playerSaveDir, player.getProfile().getId().toString() + ".slider");
+                        try {
+                            playerFile.createNewFile();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                        player.saveToFile(playerFile);
+                    }
                     RunningData.globalSessions.remove(event.getSession());
                     Component component = Component.text(profile.getName() + " 退出了游戏").color(NamedTextColor.YELLOW);
                     PlayerQuitEvent quitEvent = new PlayerQuitEvent(player, component);
@@ -140,19 +153,37 @@ public class MinecraftServer implements Server {
      * 停止并保存服务器
      */
     public static void stop() {
+        // 异步保存
         new Thread(() -> {
-            Thread.currentThread().setName("Close Thread");
-            File saveDir = new File("./" + Settings.SAVE_FOLDER);
-            if (saveDir.mkdir()) log.info("正在创建存档文件夹");
-            RunningData.worldMap.forEach((key, world) -> {
-                File worldDir = new File(saveDir, "worlds");
-                if (worldDir.mkdir()) log.info("正在创建世界存档文件夹");
-                File worldFile = new File(worldDir, key.namespace() + "_" + key.value());
-                if (worldFile.mkdir()) log.info("正在为世界 {} 创建存档文件夹", world.getKey());
-                world.stop(worldFile);
-            });
-            log.info("正在关闭服务器...");
-            server.close();
+            try {
+                for (Player player : RunningData.globalPlayers) {
+                    player.sendPacket(new ClientboundSystemChatPacket(Component.text("服务器正在关闭，请尽量不要进行操作！"), false));
+                }
+
+                Thread.currentThread().setName("Close Thread");
+                if (saveDir.mkdir()) log.info("正在创建存档文件夹");
+                RunningData.worldMap.forEach((key, world) -> {
+                    File worldDir = new File(saveDir, "worlds");
+                    if (worldDir.mkdir()) log.info("正在创建世界存档文件夹");
+                    File worldFile = new File(worldDir, key.namespace() + "_" + key.value());
+                    if (worldFile.mkdir()) log.info("正在为世界 {} 创建存档文件夹", world.getKey());
+                    world.stop(worldFile);
+                });
+
+                File playerSaveDir = new File(saveDir, "playerdata");
+                if (playerSaveDir.mkdir()) log.info("正在创建玩家存档文件夹");
+                for (Player player : RunningData.globalPlayers) {
+                    log.info("正在保存玩家 {}", player.getProfile().getName());
+                    File playerFile = new File(playerSaveDir, player.getProfile().getId().toString() + ".slider");
+                    playerFile.createNewFile();
+                    player.saveToFile(playerFile);
+                }
+
+                log.info("正在关闭服务器...");
+                server.close();
+            }catch (IOException e) {
+                log.error("在停止服务器时出现错误！ {}", e.toString());
+            }
         }).start();
     }
 }

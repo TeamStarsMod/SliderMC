@@ -3,7 +3,6 @@ package xyz.article.handlers;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import org.cloudburstmc.math.vector.Vector2i;
 import org.geysermc.mcprotocollib.auth.GameProfile;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.protocol.MinecraftConstants;
@@ -17,10 +16,11 @@ import org.geysermc.mcprotocollib.protocol.packet.common.clientbound.Clientbound
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundLoginPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundPlayerInfoUpdatePacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundSystemChatPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundPlayerAbilitiesPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundPlayerPositionPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.inventory.ClientboundContainerSetContentPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetChunkCacheRadiusPacket;
-import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.border.ClientboundInitializeBorderPacket;
-import org.geysermc.mcprotocollib.protocol.packet.login.clientbound.ClientboundLoginCompressionPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
@@ -28,13 +28,12 @@ import xyz.article.Settings;
 import xyz.article.api.Slider;
 import xyz.article.api.entities.EntityID;
 import xyz.article.api.entities.player.Player;
-import xyz.article.api.event.events.PlayerChatEvent;
+import xyz.article.api.entities.player.PlayerAbilities;
 import xyz.article.api.event.events.PlayerJoinEvent;
 import xyz.article.api.inventory.PlayerInventory;
-import xyz.article.api.world.chunk.ChunkData;
-import xyz.article.api.world.chunk.ChunkPos;
 import xyz.article.packets.ClientboundServerBrandPacket;
 
+import java.io.File;
 import java.util.*;
 
 /**
@@ -66,23 +65,54 @@ public class LoginHandler implements ServerLoginHandler {
         }
 
         int entityId = EntityID.getRandomEntityId();
-        Player player = new Player(entityId, session, profile, new PlayerInventory(), RunningData.worldMap.get(Key.key("minecraft:overworld")), GameMode.CREATIVE,8.5, 64, 8.5, 0, 0);
+        Player player = null;
+        boolean pass = false;
+        File playerSaveDir = new File("./" + Settings.SAVE_FOLDER + "/playerdata");
+        if (playerSaveDir.exists() && playerSaveDir.isDirectory()) {
+            File[] files = playerSaveDir.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.getName().endsWith(".slider")) {
+                        String fileName = file.getName().replace(".slider", "");
+                        if (fileName.equals(profile.getId().toString())) {
+                            pass = true;
+                            player = Player.getPlayerFromSave(file, session);
+                        }
+                    }
+                }
+            }
+        }
+        if (!pass) {
+            player = new Player(entityId, session, profile, new PlayerInventory(), RunningData.worldMap.get(Key.key("minecraft:overworld")), GameMode.CREATIVE, new PlayerAbilities(true, true, false, true, 0.05f, 0.1f),0, 64, 0, 0, 0);
+        }
+        if (player == null) {
+            log.error("错误！玩家为Null！");
+            return;
+        }
         Component component = Component.text(profile.getName() + " 加入了游戏").color(NamedTextColor.YELLOW);
         PlayerJoinEvent joinEvent = new PlayerJoinEvent(player, component);
         Slider.getEventManager().callEvent(joinEvent);
-        RunningData.globalEntities.add(player.getEntityId());
+
+        // 发送登录数据包
         session.send(new ClientboundLoginPacket(player.getEntityId(), false, new Key[]{ Key.key("minecraft:overworld") }, Settings.MAX_PLAYERS, Settings.VIEW_DISTANCE, 16, false, false, false, new PlayerSpawnInfo(0, player.getWorld().getKey(), 100, player.getGameMode(), player.getGameMode(), false, false, null, 100), true));
+        // 发送服务器品牌数据包
         session.send(new ClientboundServerBrandPacket("SliderMC - Rebuild").getPacket());
+        // 发送视野距离数据包
         session.send(new ClientboundSetChunkCacheRadiusPacket(Settings.VIEW_DISTANCE));
-        /*for (int i = -6; i < 6; i++) {  // 注释原因：为什么要在玩家刚加入游戏时就发送地形? WorldTick中不是已经会加载了?
-            for (int l = -6; l < 6; l++) {
-                ChunkData chunkData = player.getWorld().getChunkDataMap().get(Vector2i.from(i, l));
-                session.send(chunkData.getPacket());
-            }
-        }*/
+        // 保持玩家客户端位置与player实体同步
+        session.send(new ClientboundPlayerPositionPacket(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch(), new Random().nextInt()));
+        // 保持玩家客户端物品栏同步
+        session.send(new ClientboundContainerSetContentPacket(0, 0, player.getInventory().getItems(), player.getInventory().getDraggingItem()));
+        // 保持玩家能力同步
+        session.send(player.getPlayerAbilities().getPacket());
+
+        // 将玩家添加到RunningData的各个数据列表中
+        RunningData.globalEntities.add(player.getEntityId());
         RunningData.globalSessions.add(session);
         RunningData.globalSessionPlayerMap.put(session, player);
         RunningData.globalPlayers.add(player);
+
+        // 同步玩家属性
         for (Session session1 : RunningData.globalSessions) {
             session1.send(new ClientboundSystemChatPacket(joinEvent.getJoinMessage(), false));
             EnumSet<PlayerListEntryAction> actions = EnumSet.of(PlayerListEntryAction.ADD_PLAYER, PlayerListEntryAction.UPDATE_GAME_MODE, PlayerListEntryAction.UPDATE_LATENCY, PlayerListEntryAction.UPDATE_LISTED);
@@ -124,6 +154,8 @@ public class LoginHandler implements ServerLoginHandler {
                 session.send(new ClientboundAddEntityPacket(player1.getEntityId(), player1.getProfile().getId(), EntityType.PLAYER, player1.getX(), player1.getY(), player1.getZ(), player1.getYaw(), player1.getPitch(), 0));
             }
         }
+
+        // 完成Login
         log.info("{} 加入了游戏", profile.getName());
     }
 }

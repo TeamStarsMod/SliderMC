@@ -27,6 +27,7 @@ public class Register {
         registerPacketProcessor(new SetCreativeModeSlotPacketProcessor());
         registerPacketProcessor(new UseItemOnPacketProcessor());
         registerPacketProcessor(new PlayerCommandPacketProcessor());
+        registerPacketProcessor(new PlayerAbilitiesPacketProcessor());
     }
 
     public static List<PacketProcessor> getPacketProcessors() {

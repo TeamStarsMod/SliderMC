@@ -1,19 +1,33 @@
 package xyz.article.api.entities.player;
 
+import net.kyori.adventure.key.Key;
 import org.cloudburstmc.math.vector.Vector2i;
+import org.cloudburstmc.nbt.NbtMap;
+import org.cloudburstmc.nbt.NbtMapBuilder;
+import org.cloudburstmc.nbt.NbtType;
+import org.cloudburstmc.nbt.NbtUtils;
 import org.geysermc.mcprotocollib.auth.GameProfile;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.packet.Packet;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.GameMode;
+import org.geysermc.mcprotocollib.protocol.data.game.item.ItemStack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import xyz.article.RunningData;
 import xyz.article.api.inventory.PlayerInventory;
 import xyz.article.api.world.World;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
 
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Player {
+    private static final Logger log = LoggerFactory.getLogger(Player.class);
     private final Session session;
     private final GameProfile profile;
     private PlayerInventory inventory;
@@ -26,6 +40,7 @@ public class Player {
     private final int entityId;
     private GameMode gameMode;
     private final Hand mainHand, leftHand;
+    private PlayerAbilities playerAbilities;
 
     private final Map<Vector2i, ChunkData> loadedChunks = new ConcurrentHashMap<>();
     private ChunkPos lastChunkPos = null;
@@ -44,7 +59,7 @@ public class Player {
      * @param yaw 此玩家初始化时的yaw角度
      * @param pitch 此玩家初始化时的pitch角度
      */
-    public Player(int entityId, Session session, GameProfile profile, PlayerInventory playerInventory, World world, GameMode gameMode, double x, double y, double z, float yaw, float pitch) {
+    public Player(int entityId, Session session, GameProfile profile, PlayerInventory playerInventory, World world, GameMode gameMode, PlayerAbilities playerAbilities, double x, double y, double z, float yaw, float pitch) {
         this.session = session;
         this.profile = profile;
         this.inventory = playerInventory;
@@ -58,6 +73,7 @@ public class Player {
         this.gameMode = gameMode;
         this.mainHand = new Hand();
         this.leftHand = new Hand();
+        this.playerAbilities = playerAbilities;
 
         world.getPlayers().add(this);
     }
@@ -152,5 +168,205 @@ public class Player {
 
     public ChunkPos getLastChunkPos() {
         return lastChunkPos;
+    }
+
+    public PlayerAbilities getPlayerAbilities() {
+        return playerAbilities;
+    }
+
+    public void setPlayerAbilities(PlayerAbilities playerAbilities) {
+        this.playerAbilities = playerAbilities;
+    }
+
+    /**
+     * 将此玩家的信息保存到存档文件中
+     * @param file 存档文件
+     */
+    public void saveToFile(File file) {
+        NbtMapBuilder root = NbtMap.builder();
+
+        // 序列化基础信息
+        root.putDouble("x", locationX)
+                .putDouble("y", locationY)
+                .putDouble("z", locationZ)
+                .putFloat("yaw", angleYaw)
+                .putFloat("pitch", anglePitch)
+                .putInt("entityId", entityId)
+                .putString("gameMode", gameMode.name());
+
+        // 序列化Profile
+        NbtMapBuilder profileBuilder = NbtMap.builder()
+                .putString("name", profile.getName())
+                .putString("uuid", profile.getId().toString());
+        root.putCompound("profile", profileBuilder.build());
+
+        // 序列化世界信息
+        root.putString("world", world.getKey().toString());
+
+        // 序列化物品栏
+        NbtMapBuilder inventoryBuilder = NbtMap.builder();
+        List<NbtMap> items = new ArrayList<>();
+        for (int i = 0; i < inventory.getItems().length; i++) {
+            ItemStack item = inventory.getItems()[i];
+            if (item != null) {
+                NbtMapBuilder itemBuilder = NbtMap.builder()
+                        .putInt("slot", i)
+                        .putInt("id", item.getId())
+                        .putInt("count", item.getAmount());
+
+                /*if (item.getDataComponents() != null) {
+                    itemBuilder.putCompound("nbt", item.getDataComponents()); // TODO: 由于技术原因，暂时无法实现存储DataComponents，需要完成
+                }*/
+                items.add(itemBuilder.build());
+            }
+        }
+        inventoryBuilder.putList("items", NbtType.COMPOUND, items);
+        root.putCompound("inventory", inventoryBuilder.build());
+
+        // 序列化手持物品
+        root.putCompound("mainHand", serializeHand(mainHand));
+        root.putCompound("offHand", serializeHand(leftHand));
+
+        // 序列化玩家能力
+        NbtMapBuilder abilitiesNbt = NbtMap.builder();
+        abilitiesNbt.putBoolean("isFlying", playerAbilities.isFlying());
+        abilitiesNbt.putBoolean("invincible", playerAbilities.isInvincible());
+        abilitiesNbt.putBoolean("canFly", playerAbilities.isCanFly());
+        abilitiesNbt.putBoolean("creative", playerAbilities.isCreative());
+        abilitiesNbt.putFloat("flySpeed", playerAbilities.getFlySpeed());
+        abilitiesNbt.putFloat("walkSpeed", playerAbilities.getWalkSpeed());
+
+        root.putCompound("abilities", abilitiesNbt.build());
+
+        // 写入文件
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            NbtMap nbt = root.build();
+            NbtUtils.createWriter(fos).writeValue(nbt);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private NbtMap serializeHand(Hand hand) {
+        ItemStack item = hand.getCurrentItem();
+        if (item == null) {
+            return NbtMap.EMPTY;
+        }
+
+        NbtMapBuilder builder = NbtMap.builder()
+                .putInt("id", item.getId())
+                .putInt("count", item.getAmount());
+
+        /*if (item.getDataComponents() != null) {
+            builder.putCompound("nbt", item.getDataComponents());
+        }*/
+
+        return builder.build();
+    }
+
+    /**
+     * 从指定存档文件中获取玩家
+     * @param file 存档文件
+     * @param session 玩家的session实例
+     * @return 获取到的玩家
+     */
+    public static Player getPlayerFromSave(File file, Session session) {
+        try (FileInputStream fis = new FileInputStream(file)) {
+            // 读取NBT数据
+            NbtMap nbt = NbtUtils.createReader(fis).readValue(NbtType.COMPOUND);
+
+            // 解析基础信息
+            double x = nbt.getDouble("x");
+            double y = nbt.getDouble("y");
+            double z = nbt.getDouble("z");
+            float yaw = nbt.getFloat("yaw");
+            float pitch = nbt.getFloat("pitch");
+            int entityId = nbt.getInt("entityId");
+            GameMode gameMode = GameMode.valueOf(nbt.getString("gameMode"));
+
+            // 解析Profile
+            NbtMap profileNbt = nbt.getCompound("profile");
+            GameProfile profile = new GameProfile(
+                    UUID.fromString(profileNbt.getString("uuid")),
+                    profileNbt.getString("name")
+            );
+
+            // 获取世界实例
+            String worldKey = nbt.getString("world");
+            World world = RunningData.worldMap.get(Key.key((worldKey)));
+            if (world == null) {
+                throw new IllegalArgumentException("未获取到世界" + worldKey + " ！");
+            }
+
+            // 创建空玩家物品栏
+            PlayerInventory inventory = new PlayerInventory();
+
+            // 反序列化物品栏
+            NbtMap inventoryNbt = nbt.getCompound("inventory");
+            List<NbtMap> itemsNbt = inventoryNbt.getList("items", NbtType.COMPOUND);
+            for (NbtMap itemNbt : itemsNbt) {
+                int slot = itemNbt.getInt("slot");
+                int id = itemNbt.getInt("id");
+                int count = itemNbt.getInt("count");
+
+                ItemStack item = new ItemStack(id, count);
+                // TODO: 当支持DataComponents时反序列化nbt
+                inventory.setItem(slot, item);
+            }
+
+            // 反序列化玩家能力
+            NbtMap playerAbilitiesNbt = nbt.getCompound("abilities");
+            boolean isFlying = playerAbilitiesNbt.getBoolean("isFlying");
+            boolean invincible = playerAbilitiesNbt.getBoolean("invincible");
+            boolean canFly = playerAbilitiesNbt.getBoolean("canFly");
+            boolean creative = playerAbilitiesNbt.getBoolean("creative");
+            float flySpeed = playerAbilitiesNbt.getFloat("flySpeed");
+            float walkSpeed = playerAbilitiesNbt.getFloat("walkSpeed");
+
+            // 创建玩家实例
+            Player player = new Player(
+                    entityId,
+                    session,
+                    profile,
+                    inventory,
+                    world,
+                    gameMode,
+                    new PlayerAbilities(invincible, canFly, isFlying, creative, flySpeed, walkSpeed),
+                    x, y, z,
+                    yaw, pitch
+            );
+
+            // 反序列化手持物品
+            NbtMap mainHandNbt = nbt.getCompound("mainHand");
+            if (!mainHandNbt.isEmpty()) {
+                ItemStack mainHandItem = deserializeItem(mainHandNbt);
+                player.getMainHand().setCurrentItem(mainHandItem);
+            }
+
+            NbtMap offHandNbt = nbt.getCompound("offHand");
+            if (!offHandNbt.isEmpty()) {
+                ItemStack offHandItem = deserializeItem(offHandNbt);
+                player.getLeftHand().setCurrentItem(offHandItem);
+            }
+
+            return player;
+        } catch (FileNotFoundException e) {
+            log.error("存档文件不存在: {}", file.getAbsolutePath());
+        } catch (IOException e) {
+            log.error("读取存档文件失败: {}", e.getMessage());
+        } catch (Exception e) {
+            log.error("反序列化玩家数据时发生错误: {}", e.getMessage());
+        }
+        return null;
+    }
+
+    private static ItemStack deserializeItem(NbtMap itemNbt) {
+        int id = itemNbt.getInt("id");
+        int count = itemNbt.getInt("count");
+        ItemStack item = new ItemStack(id, count);
+
+        // TODO: 当支持DataComponents时处理nbt字段
+
+        return item;
     }
 }
