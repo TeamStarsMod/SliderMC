@@ -20,10 +20,7 @@ import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.BitSet;
-import java.util.List;
+import java.util.*;
 
 /**
  * Chunk数据
@@ -244,6 +241,16 @@ public class ChunkData {
             if (chunkDataPalette.getPalette() instanceof ListPalette listPalette) {
                 int[] data = listPalette.getData();
                 chunkDataBuilder.putIntArray("paletteData", data);
+            }  else if (chunkDataPalette.getPalette() instanceof MapPalette mapPalette){
+                // 保存id到state的数组
+                int size = mapPalette.size();
+                int[] paletteData = new int[size];
+                for (int id = 0; id < size; id++) {
+                    paletteData[id] = mapPalette.idToState(id);
+                }
+                chunkDataBuilder.putIntArray("paletteData", paletteData);
+            } else if (chunkDataPalette.getPalette() instanceof SingletonPalette singletonPalette) {
+                chunkDataBuilder.putInt("singletonState", singletonPalette.idToState(0));
             }
             sectionBuilder.putCompound("chunkDataPalette", chunkDataBuilder.build());
 
@@ -256,6 +263,15 @@ public class ChunkData {
             if (biomeDataPalette.getPalette() instanceof ListPalette listPalette) {
                 int[] data = listPalette.getData();
                 biomeDataBuilder.putIntArray("paletteData", data);
+            } else if (biomeDataPalette.getPalette() instanceof MapPalette mapPalette){
+                int size = mapPalette.size();
+                int[] paletteData = new int[size];
+                for (int id = 0; id < size; id++) {
+                    paletteData[id] = mapPalette.idToState(id);
+                }
+                biomeDataBuilder.putIntArray("paletteData", paletteData);
+            } else if (biomeDataPalette.getPalette() instanceof SingletonPalette singletonPalette) {
+                biomeDataBuilder.putInt("singletonState", singletonPalette.idToState(0));
             }
             sectionBuilder.putCompound("biomeDataPalette", biomeDataBuilder.build());
 
@@ -330,9 +346,8 @@ public class ChunkData {
      * 从文件中读取 NBT 数据并反序列化为 ChunkData
      * @param file 源文件
      * @return 反序列化后的 ChunkData 对象
-     * @throws IOException 如果读取文件时发生错误
      */
-    public static ChunkData deserializeFromFile(File file) throws IOException {
+    public static ChunkData deserializeFromFile(File file) {
         try (FileInputStream fis = new FileInputStream(file)) {
             NBTInputStream nbtInputStream = NbtUtils.createReader(fis);
             NbtMap nbt = nbtInputStream.readValue(NbtType.COMPOUND);
@@ -383,10 +398,25 @@ public class ChunkData {
                     chunkDataPalette = new DataPalette(new ListPalette(chunkDataBitsPerEntry, buf, helper), new BitStorage(chunkDataBitsPerEntry, 16 * 16 * 16, chunkDataData), PaletteType.CHUNK);
                 }
                 case 2 -> {
-                    throw new IllegalArgumentException("调色板类型 MapPalette (ID 2) 尚未支持！");
+                    int[] paletteData = chunkDataNbt.getIntArray("paletteData");
+                    MinecraftCodecHelper helper = new MinecraftCodecHelper();
+                    ByteBuf buf = Unpooled.buffer();
+                    helper.writeVarInt(buf, paletteData.length); // 写入调色板大小
+                    for (int state : paletteData) {
+                        helper.writeVarInt(buf, state); // 按顺序写入每个state
+                    }
+                    buf.readerIndex(0); // 重置读取位置
+                    MapPalette mapPalette = new MapPalette(chunkDataBitsPerEntry, buf, helper);
+                    chunkDataPalette = new DataPalette(mapPalette, new BitStorage(chunkDataBitsPerEntry, 16 * 16 * 16, chunkDataData), PaletteType.CHUNK);
                 }
                 case 3 -> {
-                    throw new IllegalArgumentException("调色板类型 SingletonPalette (ID 3) 尚未支持！");
+                    int singletonState = chunkDataNbt.getInt("singletonState");
+                    SingletonPalette singletonPalette = new SingletonPalette(singletonState);
+                    chunkDataPalette = new DataPalette(
+                            singletonPalette,
+                            new BitStorage(chunkDataBitsPerEntry, 1, chunkDataData),
+                            PaletteType.CHUNK
+                    );
                 }
                 default -> {
                     throw new IllegalArgumentException("未知的调色板类型！");
@@ -413,12 +443,29 @@ public class ChunkData {
                         helper.writeVarInt(buf, state);
                     }
                     biomeDataPalette = new DataPalette(new ListPalette(biomeDataBitsPerEntry, buf, helper), new BitStorage(biomeDataBitsPerEntry, 16 * 16 * 16, biomeDataData), PaletteType.BIOME);
+                    System.out.println(1);
                 }
                 case 2 -> {
-                    throw new IllegalArgumentException("调色板类型 MapPalette (ID 2) 尚未支持！");
+                    int[] paletteData = biomeDataNbt.getIntArray("paletteData");
+                    MinecraftCodecHelper helper = new MinecraftCodecHelper();
+                    ByteBuf buf = Unpooled.buffer();
+                    helper.writeVarInt(buf, paletteData.length);
+                    for (int state : paletteData) {
+                        helper.writeVarInt(buf, state);
+                    }
+                    buf.readerIndex(0);
+                    MapPalette mapPalette = new MapPalette(biomeDataBitsPerEntry, buf, helper);
+                    biomeDataPalette = new DataPalette(mapPalette, new BitStorage(biomeDataBitsPerEntry, 16 * 16 * 16, biomeDataData), PaletteType.BIOME);
+                    System.out.println(2);
                 }
                 case 3 -> {
-                    throw new IllegalArgumentException("调色板类型 SingletonPalette (ID 3) 尚未支持！");
+                    int singletonState = biomeDataNbt.getInt("singletonState");
+                    SingletonPalette singletonPalette = new SingletonPalette(singletonState);
+                    biomeDataPalette = new DataPalette(
+                            singletonPalette,
+                            new BitStorage(biomeDataBitsPerEntry, 1, biomeDataData),
+                            PaletteType.BIOME
+                    );
                 }
                 default -> {
                     throw new IllegalArgumentException("未知的调色板类型！");

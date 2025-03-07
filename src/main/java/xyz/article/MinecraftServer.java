@@ -51,6 +51,7 @@ public class MinecraftServer implements Server {
 
     public static void main(String[] args) throws IOException {
         long start = System.currentTimeMillis();
+        new ShutdownHook();
         File propertiesFile = new File("./settings.yml");
         if (propertiesFile.createNewFile()) log.info("已创建配置文件");
         Settings.init(propertiesFile);
@@ -158,6 +159,8 @@ public class MinecraftServer implements Server {
         // 异步保存
         new Thread(() -> {
             try {
+                RunningData.stopping = true;
+
                 for (Player player : RunningData.globalPlayers) {
                     player.sendPacket(new ClientboundSystemChatPacket(Component.text("服务器正在关闭，请尽量不要进行操作！"), false));
                 }

@@ -14,4 +14,6 @@ public class RunningData {
     public static CopyOnWriteArrayList<Player> globalPlayers = new CopyOnWriteArrayList<>();
     public static CopyOnWriteArrayList<Integer> globalEntities = new CopyOnWriteArrayList<>();
     public static ConcurrentHashMap<Key, World> worldMap = new ConcurrentHashMap<>();
+
+    public static boolean stopping = false;
 }
