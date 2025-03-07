@@ -6,18 +6,24 @@ import org.cloudburstmc.math.vector.Vector3i;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.packet.Packet;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.EquipmentSlot;
+import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.Equipment;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.Animation;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.GameMode;
+import org.geysermc.mcprotocollib.protocol.data.game.item.ItemStack;
 import org.geysermc.mcprotocollib.protocol.data.game.level.particle.BlockParticleData;
 import org.geysermc.mcprotocollib.protocol.data.game.level.particle.Particle;
 import org.geysermc.mcprotocollib.protocol.data.game.level.particle.ParticleData;
 import org.geysermc.mcprotocollib.protocol.data.game.level.particle.ParticleType;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundAnimatePacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundSetEquipmentPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundBlockChangedAckPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.inventory.ClientboundContainerSetContentPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundLevelParticlesPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSoundPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.player.ServerboundPlayerActionPacket;
 import xyz.article.api.Slider;
+import xyz.article.api.entities.player.Hand;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.packetprocessor.PacketProcessor;
 import xyz.article.api.world.World;
@@ -49,7 +55,6 @@ public class PlayerActionPacketProcessor implements PacketProcessor {
                         for (Player player1 : player.getWorld().getPlayers()) {
                             player1.sendPacket(chunk.getPacket());
                             if (!(player1.getSession().equals(session))) {
-                                player1.sendPacket(new ClientboundAnimatePacket(player.getEntityId(), Animation.SWING_ARM));
                                 player1.sendPacket(new ClientboundLevelParticlesPacket(new Particle(ParticleType.BLOCK, new BlockParticleData(blockState)), false, blockPos.pos().getX(), blockPos.pos().getY(), blockPos.pos().getZ(), 0f, 0.5f, 0f, 0, 80));
                             }
                         }
@@ -120,6 +125,29 @@ public class PlayerActionPacketProcessor implements PacketProcessor {
                     }*/
                 }
 
+                case SWAP_HANDS -> {
+                    Player player = Slider.getPlayer(session);
+                    if (player != null) {
+                        Hand mainHand = player.getMainHand();
+                        Hand offHand = player.getLeftHand();
+                        ItemStack mainHandCurrItem = mainHand.getCurrentItem();
+                        ItemStack offHandCurrItem = offHand.getCurrentItem();
+                        mainHand.setCurrentItem(offHandCurrItem);
+                        offHand.setCurrentItem(mainHandCurrItem);
+                        int slot = mainHand.getCurrentSlot() + 36;
+                        ItemStack mainHandInventoryItem = player.getInventory().getItems()[slot];
+                        ItemStack offHandInventoryItem = player.getInventory().getItems()[45];
+                        player.getInventory().setItem(slot, offHandInventoryItem);
+                        player.getInventory().setItem(45, mainHandInventoryItem);
+                        player.sendPacket(new ClientboundContainerSetContentPacket(0, 0, player.getInventory().getItems(), player.getInventory().getDraggingItem()));
+                        for (Player player1 : player.getWorld().getPlayers()) {
+                            if (!(player1.getSession().equals(session))) {
+                                player1.sendPacket(new ClientboundSetEquipmentPacket(player.getEntityId(), new Equipment[]{new Equipment(EquipmentSlot.MAIN_HAND, player.getMainHand().getCurrentItem())}));
+                                player1.sendPacket(new ClientboundSetEquipmentPacket(player.getEntityId(), new Equipment[]{new Equipment(EquipmentSlot.OFF_HAND, player.getLeftHand().getCurrentItem())}));
+                            }
+                        }
+                    }
+                }
             }
         }
     }

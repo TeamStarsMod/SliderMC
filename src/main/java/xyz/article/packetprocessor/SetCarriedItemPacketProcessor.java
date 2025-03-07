@@ -27,6 +27,7 @@ public class SetCarriedItemPacketProcessor implements PacketProcessor {
                 for (Player player1 : player.getWorld().getPlayers()) {
                     if (!(player1.getSession().equals(session))) {
                         player1.sendPacket(new ClientboundSetEquipmentPacket(player.getEntityId(), new Equipment[]{new Equipment(EquipmentSlot.MAIN_HAND, player.getMainHand().getCurrentItem())}));
+                        player1.sendPacket(new ClientboundSetEquipmentPacket(player.getEntityId(), new Equipment[]{new Equipment(EquipmentSlot.OFF_HAND, player.getLeftHand().getCurrentItem())}));
                     }
                 }
             }

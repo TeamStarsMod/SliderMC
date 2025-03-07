@@ -28,6 +28,7 @@ public class Register {
         registerPacketProcessor(new UseItemOnPacketProcessor());
         registerPacketProcessor(new PlayerCommandPacketProcessor());
         registerPacketProcessor(new PlayerAbilitiesPacketProcessor());
+        registerPacketProcessor(new SwingPacketProcessor());
     }
 
     public static List<PacketProcessor> getPacketProcessors() {

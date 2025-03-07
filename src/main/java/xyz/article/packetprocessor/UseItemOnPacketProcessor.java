@@ -85,7 +85,12 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
 
                     // 设置新方块
                     int id = 0;
-                    ItemStack item = Objects.requireNonNull(Slider.getPlayer(session)).getMainHand().getCurrentItem();
+                    ItemStack item;
+                    if (player.getMainHand().getCurrentItem() != null) {
+                        item = player.getMainHand().getCurrentItem();
+                    } else {
+                        item = player.getLeftHand().getCurrentItem();
+                    }
                     if (item != null) {
                         id = item.getId();
                     }

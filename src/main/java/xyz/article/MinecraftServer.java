@@ -113,6 +113,8 @@ public class MinecraftServer implements Server {
                         for (PacketProcessor processor : Register.getPacketProcessors()) {
                             processor.process(session, packet);
                         }
+
+                        //System.out.println(packet);
                     }
                 });
             }
