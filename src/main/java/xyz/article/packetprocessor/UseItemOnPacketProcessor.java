@@ -67,9 +67,9 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
             }
 
             if (player != null) {
-                int playerBlockX = (int) Math.floor(player.getX());
-                int playerBlockY = (int) Math.floor(player.getY());
-                int playerBlockZ = (int) Math.floor(player.getZ());
+                int playerBlockX = (int) Math.floor(player.getPosition().getX());
+                int playerBlockY = (int) Math.floor(player.getPosition().getY());
+                int playerBlockZ = (int) Math.floor(player.getPosition().getZ());
 
                 if ((blockX == playerBlockX && blockY == playerBlockY && blockZ == playerBlockZ) || (blockX == playerBlockX && blockY == playerBlockY + 1 && blockZ == playerBlockZ)) {
                     return;
@@ -112,6 +112,11 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
                         session.send(new ClientboundSystemChatPacket(Component.text("没有获取到你手中方块物品对应的方块！").color(NamedTextColor.RED), false));
                         return;
                     }
+
+                    if (chunkSections[sectionIndex].getBlock(localX, localY, localZ) != 0) {
+                        return;
+                    }
+
                     chunkSections[sectionIndex].setBlock(localX, localY, localZ, blockID);
 
                     // 发送区块更新包

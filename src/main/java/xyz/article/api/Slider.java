@@ -54,8 +54,8 @@ public class Slider {
     }
 
     public static ChunkPos getChunkPos (Player player) {
-        int chunkX = (int) player.getX() >> 4;
-        int chunkZ = (int) player.getZ() >> 4;
+        int chunkX = (int) player.getPosition().getX() >> 4;
+        int chunkZ = (int) player.getPosition().getZ() >> 4;
         return new ChunkPos(player.getWorld(), Vector2i.from(chunkX, chunkZ));
     }
 

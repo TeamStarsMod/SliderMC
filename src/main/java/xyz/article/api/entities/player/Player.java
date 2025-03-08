@@ -2,6 +2,7 @@ package xyz.article.api.entities.player;
 
 import net.kyori.adventure.key.Key;
 import org.cloudburstmc.math.vector.Vector2i;
+import org.cloudburstmc.math.vector.Vector3d;
 import org.cloudburstmc.nbt.NbtMap;
 import org.cloudburstmc.nbt.NbtMapBuilder;
 import org.cloudburstmc.nbt.NbtType;
@@ -102,14 +103,9 @@ public class Player {
     public World getWorld() {
         return world;
     }
-    public double getX() {
-        return locationX;
-    }
-    public double getY() {
-        return locationY;
-    }
-    public double getZ() {
-        return locationZ;
+
+    public Vector3d getPosition() {
+        return Vector3d.from(locationX, locationY, locationZ);
     }
 
     public float getYaw() {
@@ -122,14 +118,13 @@ public class Player {
     public void setWorld(World world) {
         this.world = world;
     }
-    public void setX(double locationX) {
-        this.locationX = locationX;
-    }
-    public void setY(double locationY) {
-        this.locationY = locationY;
-    }
-    public void setZ(double locationZ) {
-        this.locationZ = locationZ;
+
+    public void updatePosition(double x, double y, double z, float yaw, float pitch) {
+        this.locationX = x;
+        this.locationY = y;
+        this.locationZ = z;
+        this.angleYaw = yaw;
+        this.anglePitch = pitch;
     }
 
     public void setPitch(float anglePitch) {

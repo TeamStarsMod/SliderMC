@@ -16,19 +16,14 @@ public class MovePlayerPosRotPacketProcessor implements PacketProcessor {
         if (packet instanceof ServerboundMovePlayerPosRotPacket posRotPacket) {
             Player player = Slider.getPlayer(session);
             if (player != null) {
-                double moveX = posRotPacket.getX() - player.getX();
-                double moveY = posRotPacket.getY() - player.getY();
-                double moveZ = posRotPacket.getZ() - player.getZ();
+                double moveX = posRotPacket.getX() - player.getPosition().getX();
+                double moveY = posRotPacket.getY() - player.getPosition().getY();
+                double moveZ = posRotPacket.getZ() - player.getPosition().getZ();
 
                 float newYaw = posRotPacket.getYaw();
                 float newPitch = posRotPacket.getPitch();
 
-                player.setX(posRotPacket.getX());
-                player.setY(posRotPacket.getY());
-                player.setZ(posRotPacket.getZ());
-
-                player.setYaw(newYaw);
-                player.setPitch(newPitch);
+                player.updatePosition(posRotPacket.getX(), posRotPacket.getY(), posRotPacket.getZ(), newYaw, newPitch);
 
                 for (Session session1 : RunningData.globalSessions) {
                     if (!session1.equals(session)) {

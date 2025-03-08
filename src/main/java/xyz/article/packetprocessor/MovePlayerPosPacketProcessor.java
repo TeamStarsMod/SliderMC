@@ -15,13 +15,11 @@ public class MovePlayerPosPacketProcessor implements PacketProcessor {
         if (packet instanceof ServerboundMovePlayerPosPacket playerPosPacket) {
             Player player = Slider.getPlayer(session);
             if (player != null) {
-                double moveX = playerPosPacket.getX() - player.getX();
-                double moveY = playerPosPacket.getY() - player.getY();
-                double moveZ = playerPosPacket.getZ() - player.getZ();
+                double moveX = playerPosPacket.getX() - player.getPosition().getX();
+                double moveY = playerPosPacket.getY() - player.getPosition().getY();
+                double moveZ = playerPosPacket.getZ() - player.getPosition().getZ();
 
-                player.setX(playerPosPacket.getX());
-                player.setY(playerPosPacket.getY());
-                player.setZ(playerPosPacket.getZ());
+                player.updatePosition(playerPosPacket.getX(), playerPosPacket.getY(), playerPosPacket.getZ(), player.getYaw(), player.getPitch());
 
                 for (Session session1 : RunningData.globalSessions) {
                     if (!session1.equals(session)) {

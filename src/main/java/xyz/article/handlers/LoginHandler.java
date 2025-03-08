@@ -106,9 +106,9 @@ public class LoginHandler implements ServerLoginHandler {
         session.send(new ClientboundServerBrandPacket("SliderMC - Rebuild").getPacket());
         // 发送视野距离数据包
         session.send(new ClientboundSetChunkCacheRadiusPacket(Settings.VIEW_DISTANCE));
-        session.send(new ClientboundSetChunkCacheCenterPacket(((int) player.getX()) >> 4, ((int) player.getZ() >> 4)));
+        session.send(new ClientboundSetChunkCacheCenterPacket(((int) player.getPosition().getX()) >> 4, ((int) player.getPosition().getZ() >> 4)));
         // 保持玩家客户端位置与player实体同步
-        session.send(new ClientboundPlayerPositionPacket(player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch(), new Random().nextInt()));
+        session.send(new ClientboundPlayerPositionPacket(player.getPosition().getX(), player.getPosition().getY(), player.getPosition().getZ(), player.getYaw(), player.getPitch(), new Random().nextInt()));
         // 保持玩家客户端物品栏同步
         session.send(new ClientboundContainerSetContentPacket(0, 0, player.getInventory().getItems(), player.getInventory().getDraggingItem()));
         session.send(new ClientboundSetCarriedItemPacket(player.getMainHand().getCurrentSlot()));
@@ -161,13 +161,13 @@ public class LoginHandler implements ServerLoginHandler {
         List<ClientboundSetEquipmentPacket> clientboundSetEquipmentPacketList = new ArrayList<>();
         for (Player player1 : player.getWorld().getPlayers()) {
             if (!player1.equals(player)) {
-                session.send(new ClientboundAddEntityPacket(player1.getEntityId(), player1.getProfile().getId(), EntityType.PLAYER, player1.getX(), player1.getY(), player1.getZ(), player1.getYaw(), player1.getPitch(), 0));
+                session.send(new ClientboundAddEntityPacket(player1.getEntityId(), player1.getProfile().getId(), EntityType.PLAYER, player1.getPosition().getX(), player1.getPosition().getY(), player1.getPosition().getZ(), player1.getYaw(), player1.getPitch(), 0));
                 clientboundSetEquipmentPacketList.add(new ClientboundSetEquipmentPacket(player1.getEntityId(), new Equipment[]{new Equipment(EquipmentSlot.MAIN_HAND, player1.getMainHand().getCurrentItem())}));
                 clientboundSetEquipmentPacketList.add(new ClientboundSetEquipmentPacket(player1.getEntityId(), new Equipment[]{new Equipment(EquipmentSlot.OFF_HAND, player1.getLeftHand().getCurrentItem())}));
                 player1.sendPacket(new ClientboundSetEquipmentPacket(player.getEntityId(), new Equipment[]{new Equipment(EquipmentSlot.MAIN_HAND, player.getMainHand().getCurrentItem())}));
                 player1.sendPacket(new ClientboundSetEquipmentPacket(player.getEntityId(), new Equipment[]{new Equipment(EquipmentSlot.OFF_HAND, player.getLeftHand().getCurrentItem())}));
                 player1.sendPacket(new ClientboundSystemChatPacket(joinEvent.getJoinMessage(), false));
-                player1.sendPacket(new ClientboundAddEntityPacket(player.getEntityId(), profile.getId(), EntityType.PLAYER, player.getX(), player.getY(), player.getZ(), player.getYaw(), player.getPitch(), 0));
+                player1.sendPacket(new ClientboundAddEntityPacket(player.getEntityId(), profile.getId(), EntityType.PLAYER, player.getPosition().getX(), player.getPosition().getY(), player.getPosition().getZ(), player.getYaw(), player.getPitch(), 0));
             }
         }
         for (ClientboundSetEquipmentPacket packet : clientboundSetEquipmentPacketList) {
