@@ -144,7 +144,7 @@ public class Player {
     }
 
     /**
-     * 此方法用于同时更新玩家对象内部的位置和玩家客户端的位置与其他玩家看到的玩家实体位置 (不建议大量使用，可能会导致带宽与性能占用升高)
+     * 此方法用于同时更新玩家对象内部的位置与其他玩家看到的玩家实体位置 (不建议大量使用，可能会导致带宽与性能占用升高)
      * @param x 要设置的x坐标
      * @param y 要设置的y坐标
      * @param z 要设置的z坐标
@@ -169,11 +169,6 @@ public class Player {
                 ));
             }
         }
-        session.send(new ClientboundPlayerPositionPacket(
-                x, y, z,
-                yaw, pitch,
-                new Random().nextInt()
-        ));
     }
 
     /**
