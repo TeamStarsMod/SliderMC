@@ -12,6 +12,9 @@ import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.network.packet.Packet;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.GameMode;
 import org.geysermc.mcprotocollib.protocol.data.game.item.ItemStack;
+import org.geysermc.mcprotocollib.protocol.packet.common.clientbound.ClientboundDisconnectPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundTeleportEntityPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundPlayerPositionPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
@@ -22,10 +25,7 @@ import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Player {
@@ -39,6 +39,7 @@ public class Player {
     private double locationZ;
     private float angleYaw;
     private float anglePitch;
+    private boolean onGround;
     private final int entityId;
     private GameMode gameMode;
     private final Hand mainHand, leftHand;
@@ -46,6 +47,7 @@ public class Player {
 
     private final Map<Vector2i, ChunkData> loadedChunks = new ConcurrentHashMap<>();
     private ChunkPos lastChunkPos = null;
+    private Vector3d lastValidPosition;
 
     /**
      * 创建一个新玩家实例
@@ -76,6 +78,8 @@ public class Player {
         this.mainHand = new Hand();
         this.leftHand = new Hand();
         this.playerAbilities = playerAbilities;
+        this.lastValidPosition = Vector3d.from(x, y, z);
+        this.onGround = false;
 
         world.getPlayers().add(this);
     }
@@ -114,17 +118,78 @@ public class Player {
     public float getPitch() {
         return anglePitch;
     }
+    public boolean isOnGround() {
+        return onGround;
+    }
 
     public void setWorld(World world) {
         this.world = world;
     }
 
-    public void updatePosition(double x, double y, double z, float yaw, float pitch) {
+    /**
+     * 此方法用于更新玩家对象内部保存的位置(不会同步给其他玩家和绑定的客户端)
+     * @param x 要设置的x坐标
+     * @param y 要设置的y坐标
+     * @param z 要设置的z坐标
+     * @param yaw 要设置的yaw
+     * @param pitch 要设置的pitch
+     */
+    public void updatePosition(double x, double y, double z, float yaw, float pitch, boolean onGround) {
         this.locationX = x;
         this.locationY = y;
         this.locationZ = z;
         this.angleYaw = yaw;
         this.anglePitch = pitch;
+        this.onGround = onGround;
+    }
+
+    /**
+     * 此方法用于同时更新玩家对象内部的位置和玩家客户端的位置与其他玩家看到的玩家实体位置 (不建议大量使用，可能会导致带宽与性能占用升高)
+     * @param x 要设置的x坐标
+     * @param y 要设置的y坐标
+     * @param z 要设置的z坐标
+     * @param yaw 要设置的yaw
+     * @param pitch 要设置的pitch
+     * @param onGround 是否在地上
+     */
+    public void setPosition(double x, double y, double z, float yaw, float pitch, boolean onGround) {
+        this.locationX = x;
+        this.locationY = y;
+        this.locationZ = z;
+        this.angleYaw = yaw;
+        this.anglePitch = pitch;
+
+        for (Player player1 : world.getPlayers()) {
+            if (!player1.equals(this)) {
+                player1.sendPacket(new ClientboundTeleportEntityPacket(
+                        entityId,
+                        x, y, z,
+                        yaw, pitch,
+                        onGround
+                ));
+            }
+        }
+        session.send(new ClientboundPlayerPositionPacket(
+                x, y, z,
+                yaw, pitch,
+                new Random().nextInt()
+        ));
+    }
+
+    /**
+     * 同步玩家客户端(绑定的Session)与此玩家实体的位置
+     */
+    public void syncClient() {
+        session.send(new ClientboundPlayerPositionPacket(
+                locationX, locationY, locationZ,
+                angleYaw, anglePitch,
+                new Random().nextInt()
+        ));
+    }
+
+    public void kick(String reason) {
+        session.send(new ClientboundDisconnectPacket(reason));
+        session.disconnect(reason);
     }
 
     public void setPitch(float anglePitch) {
@@ -172,6 +237,14 @@ public class Player {
 
     public void setPlayerAbilities(PlayerAbilities playerAbilities) {
         this.playerAbilities = playerAbilities;
+    }
+
+    public Vector3d getLastValidPosition() {
+        return lastValidPosition;
+    }
+
+    public void setLastValidPosition(Vector3d lastValidPosition) {
+        this.lastValidPosition = lastValidPosition;
     }
 
     /**

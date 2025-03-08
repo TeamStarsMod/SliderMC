@@ -3,12 +3,15 @@ package xyz.article.handlers;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.cloudburstmc.math.vector.Vector2i;
+import org.cloudburstmc.nbt.NbtMap;
 import org.geysermc.mcprotocollib.auth.GameProfile;
 import org.geysermc.mcprotocollib.network.Session;
 import org.geysermc.mcprotocollib.protocol.MinecraftConstants;
 import org.geysermc.mcprotocollib.protocol.ServerLoginHandler;
 import org.geysermc.mcprotocollib.protocol.data.game.PlayerListEntry;
 import org.geysermc.mcprotocollib.protocol.data.game.PlayerListEntryAction;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.BitStorage;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.EquipmentSlot;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.metadata.Equipment;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.GameMode;
@@ -19,7 +22,6 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.Clientbound
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundPlayerInfoUpdatePacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundSystemChatPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundSetEquipmentPacket;
-import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundPlayerAbilitiesPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundPlayerPositionPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundSetCarriedItemPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.spawn.ClientboundAddEntityPacket;
@@ -38,6 +40,7 @@ import xyz.article.api.entities.player.PlayerAbilities;
 import xyz.article.api.event.events.PlayerJoinEvent;
 import xyz.article.api.inventory.PlayerInventory;
 import xyz.article.api.world.chunk.ChunkData;
+import xyz.article.api.world.chunk.ChunkPos;
 import xyz.article.packets.ClientboundServerBrandPacket;
 
 import java.io.File;
@@ -91,14 +94,49 @@ public class LoginHandler implements ServerLoginHandler {
         }
         if (!pass) {
             player = new Player(entityId, session, profile, new PlayerInventory(), RunningData.worldMap.get(Key.key("minecraft:overworld")), GameMode.CREATIVE, new PlayerAbilities(true, true, false, true, 0.05f, 0.1f),0, 64, 0, 0, 0);
-        }
-        if (player == null) {
-            log.error("错误！玩家为Null！");
-            return;
+            int spawnChunkX = ((int) player.getPosition().getX()) >> 4;
+            int spawnChunkZ = ((int) player.getPosition().getZ()) >> 4;
+
+            // 优先生成玩家所在出生点的区块
+            ChunkData spawnChunk;
+            if (player.getWorld().getChunkDataMap().get(Vector2i.from(spawnChunkX, spawnChunkZ)) != null) {
+                spawnChunk = player.getWorld().getChunkDataMap().get(Vector2i.from(spawnChunkX, spawnChunkZ));
+            } else {
+                File chunksDir = new File(Settings.SAVE_FOLDER, "worlds/" + player.getWorld().getKey().namespace() + "_" + player.getWorld().getKey().value() + "/chunks");
+                if (chunksDir.mkdirs()) log.debug("已新建区块文件夹");
+                File chunkFile = new File(chunksDir, "chunk_" + spawnChunkX + "_" + spawnChunkZ + ".slider");
+                if (chunkFile.exists()) {
+                    spawnChunk = ChunkData.deserializeFromFile(chunkFile);
+                } else {
+                    spawnChunk = player.getWorld().getGenerator().generateChunk(new ChunkPos(player.getWorld(), Vector2i.from(spawnChunkX, spawnChunkZ)));
+                }
+            }
+
+            // 确定玩家出生点的y坐标
+            if (spawnChunk != null) {
+                NbtMap heightMap = spawnChunk.getHeightMap();
+                long[] surfaceData = heightMap.getLongArray("WORLD_SURFACE");
+                BitStorage decoded = new BitStorage(9, 256, surfaceData);
+                int heightMapY = decoded.get((player.getPosition().getFloorX() & 15) * 16 + (player.getPosition().getFloorZ() & 15)) - 64; // 获取原始Y坐标
+                // 更新玩家的出生位置到最高方块之上
+                player.updatePosition(player.getPosition().getX(), heightMapY + 1, player.getPosition().getZ(), player.getYaw(), player.getPitch(), player.isOnGround());
+                log.debug("已设置玩家 {} 的出生点y坐标为 {}", player.getProfile().getName(), heightMapY + 1);
+            } else {
+                log.error("未能获取到玩家 {} 的出生区块！", player.getProfile().getName());
+            }
         }
         Component component = Component.text(profile.getName() + " 加入了游戏").color(NamedTextColor.YELLOW);
         PlayerJoinEvent joinEvent = new PlayerJoinEvent(player, component);
         Slider.getEventManager().callEvent(joinEvent);
+
+        if (player == null) {
+            log.error("错误！玩家为Null！");
+            return;
+        }
+
+        if (player.getPosition().getY() < -64) {
+            player.updatePosition(player.getPosition().getX(), 128, player.getPosition().getZ(), player.getYaw(), player.getPitch(), player.isOnGround());
+        }
 
         // 发送登录数据包
         session.send(new ClientboundLoginPacket(player.getEntityId(), false, new Key[]{ Key.key("minecraft:overworld") }, Settings.MAX_PLAYERS, Settings.VIEW_DISTANCE, 16, false, false, false, new PlayerSpawnInfo(0, player.getWorld().getKey(), 100, player.getGameMode(), player.getGameMode(), false, false, null, 100), true));

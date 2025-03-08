@@ -23,7 +23,7 @@ public class MovePlayerPosRotPacketProcessor implements PacketProcessor {
                 float newYaw = posRotPacket.getYaw();
                 float newPitch = posRotPacket.getPitch();
 
-                player.updatePosition(posRotPacket.getX(), posRotPacket.getY(), posRotPacket.getZ(), newYaw, newPitch);
+                player.updatePosition(posRotPacket.getX(), posRotPacket.getY(), posRotPacket.getZ(), newYaw, newPitch, posRotPacket.isOnGround());
 
                 for (Session session1 : RunningData.globalSessions) {
                     if (!session1.equals(session)) {

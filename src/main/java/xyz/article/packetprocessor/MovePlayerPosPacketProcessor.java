@@ -19,7 +19,7 @@ public class MovePlayerPosPacketProcessor implements PacketProcessor {
                 double moveY = playerPosPacket.getY() - player.getPosition().getY();
                 double moveZ = playerPosPacket.getZ() - player.getPosition().getZ();
 
-                player.updatePosition(playerPosPacket.getX(), playerPosPacket.getY(), playerPosPacket.getZ(), player.getYaw(), player.getPitch());
+                player.updatePosition(playerPosPacket.getX(), playerPosPacket.getY(), playerPosPacket.getZ(), player.getYaw(), player.getPitch(), playerPosPacket.isOnGround());
 
                 for (Session session1 : RunningData.globalSessions) {
                     if (!session1.equals(session)) {

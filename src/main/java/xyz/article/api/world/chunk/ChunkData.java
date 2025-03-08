@@ -18,6 +18,7 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
+import xyz.article.api.world.block.BlockProperties;
 
 import java.io.*;
 import java.util.*;
@@ -158,6 +159,46 @@ public class ChunkData {
      */
     public void setHeightMap(NbtMap heightMap) {
         this.heightMap = heightMap;
+    }
+
+    public void updateHeightMap(int x, int z) {
+        int[][] heightMap = new int[16][16];
+        int maxY = -64; // 初始化为世界最低Y值
+
+        // 遍历该x,z列的所有Y值（从高到低）
+        for (int y = 319; y >= -64; y--) {
+            int sectionIndex = (y + 64) / 16; // 计算子区块索引
+            if (sectionIndex < 0 || sectionIndex >= chunkSections.length) continue;
+
+            ChunkSection section = chunkSections[sectionIndex];
+            if (section == null) continue;
+
+            int localY = (y + 64) % 16; // 转换为子区块局部Y坐标
+            int blockState = section.getBlock(x, localY, z);
+
+            // 判断是否为固体方块
+            if (blockState != 0 && BlockProperties.checkIsSolidBlock(blockState)) {
+                maxY = y;
+                break;
+            }
+        }
+
+        // 更新高度图数组
+        heightMap[x][z] = maxY;
+        this.heightMap = createHeightMapNbt(heightMap);
+    }
+
+    private NbtMap createHeightMapNbt(int[][] heightValues) {
+        BitStorage storage = new BitStorage(9, 16 * 16);
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                int index = z * 16 + x;
+                storage.set(index, heightValues[x][z] + 64);
+            }
+        }
+        return NbtMap.builder()
+                .putLongArray("WORLD_SURFACE", storage.getData())
+                .build();
     }
 
     /**
@@ -465,9 +506,7 @@ public class ChunkData {
                             PaletteType.BIOME
                     );
                 }
-                default -> {
-                    throw new IllegalArgumentException("未知的调色板类型！");
-                }
+                default -> throw new IllegalArgumentException("未知的调色板类型！");
             }
             // 创建 ChunkSection
             int blockCount = sectionNbt.getInt("blockCount");

@@ -1,5 +1,7 @@
 package xyz.article.world;
 
+import org.cloudburstmc.nbt.NbtMap;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.BitStorage;
 import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
@@ -29,6 +31,7 @@ public class OverWorldGenerator extends WorldGenerator {
     public ChunkData generateChunk(ChunkPos pos) {
         // FIXME: 生物群系似乎无法正常使用(不是指上面的噪声，是指设置了数据但是客户端没有收到)，且某些客户端会导致崩溃
         ChunkData chunkData = new ChunkData(pos);
+        int[][] heightMap = new int[16][16]; // 存储每个x,z位置的最高Y值
 
         // 遍历区块中的每个x,z坐标
         for (int x = 0; x < 16; x++) {
@@ -58,6 +61,7 @@ public class OverWorldGenerator extends WorldGenerator {
                 // 填充方块
                 for (int y = 0; y < 320; y++) {
                     if (y < height) {
+                        boolean isSolid = true;
                         // 地表部分使用草方块
                         if (y == height - 1) {
                             //setBlock(chunkData.getChunkSections(), x, y, z, getSurfaceBlockId(biomeId)); // 根据生物群系设置地表方块
@@ -69,8 +73,14 @@ public class OverWorldGenerator extends WorldGenerator {
                             double caveNoiseValue = caveNoise.noise(globalX * caveScale, y * caveScale, globalZ * caveScale);
                             if (caveNoiseValue > 0.2) { // 矿洞阈值
                                 setBlock(chunkData.getChunkSections(), x, y, z, 0); // 矿洞部分填充空气
+                                isSolid = false;
                             } else {
                                 setBlock(chunkData.getChunkSections(), x, y, z, 1); // 其他部分填充石头
+                            }
+
+                            // 更新高度图(只记录固体方块)
+                            if (isSolid && y > heightMap[x][z]) {
+                                heightMap[x][z] = y;
                             }
                         }
                     } else {
@@ -88,6 +98,8 @@ public class OverWorldGenerator extends WorldGenerator {
 
         // 设置光照数据
         chunkData.setLightUpdateData(createLightUpdateData());
+        // 更新高度图数据
+        chunkData.setHeightMap(createHeightMapNbt(heightMap));
 
         return chunkData;
     }
@@ -131,7 +143,7 @@ public class OverWorldGenerator extends WorldGenerator {
     }
 
     private void setBlock(ChunkSection[] chunkSections, int x, int y, int z, int blockId) {
-        if (x < 0 || x >= 16 || y < -63 || y >= 320 || z < 0 || z >= 16) return; // 确保坐标在区块范围内
+        if (x < 0 || x >= 16 || y < -64 || y >= 320 || z < 0 || z >= 16) return; // 确保坐标在区块范围内
 
         int sectionIndex = y / 16;
         int localY = y % 16;
@@ -139,5 +151,18 @@ public class OverWorldGenerator extends WorldGenerator {
         if (section != null) {
             section.setBlock(x, localY, z, blockId);
         }
+    }
+
+    private NbtMap createHeightMapNbt(int[][] heightValues) {
+        BitStorage storage = new BitStorage(9, 16 * 16);
+        for (int x = 0; x < 16; x++) {
+            for (int z = 0; z < 16; z++) {
+                int index = z * 16 + x;
+                storage.set(index, heightValues[x][z] + 64);
+            }
+        }
+        return NbtMap.builder()
+                .putLongArray("WORLD_SURFACE", storage.getData())
+                .build();
     }
 }

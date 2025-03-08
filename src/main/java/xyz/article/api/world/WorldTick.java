@@ -1,40 +1,32 @@
 package xyz.article.api.world;
 
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 import org.cloudburstmc.math.vector.Vector2i;
-import org.geysermc.mcprotocollib.protocol.codec.MinecraftCodec;
-import org.geysermc.mcprotocollib.protocol.codec.MinecraftCodecHelper;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.BitStorage;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkBiomeData;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.DataPalette;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.GlobalPalette;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.PaletteType;
-import org.geysermc.mcprotocollib.protocol.data.game.chunk.palette.SingletonPalette;
-import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundChunksBiomesPacket;
+import org.cloudburstmc.math.vector.Vector3d;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundForgetLevelChunkPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetChunkCacheCenterPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetTimePacket;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import xyz.article.Settings;
 import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
+import xyz.article.api.world.block.BlockProperties;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 /**
  * 用于控制世界的Tick逻辑
  */
 public class WorldTick {
+    private static final Logger log = LoggerFactory.getLogger(WorldTick.class);
     private final World world;
     private int worldTime = 0;
     private int worldAge = 0;
-    private long timeSetCacheTime = 0;
-    private long chunkSaveCacheTime = 0;
 
     public WorldTick(World world) {
         this.world = world;
@@ -44,6 +36,13 @@ public class WorldTick {
      * Tick逻辑
      */
     public void tick() {
+        updateTime();
+        chunkHandler();
+        checkPlayerPos();
+    }
+
+    private long timeSetCacheTime = 0;
+    private void updateTime() {
         // 更新世界时间
         worldTime++;
         if (worldTime > 24000) {
@@ -58,7 +57,10 @@ public class WorldTick {
                 player.sendPacket(new ClientboundSetTimePacket(worldAge, worldTime));
             }
         }
+    }
 
+    private long chunkSaveCacheTime = 0;
+    private void chunkHandler() {
         // 每隔设定时间保存一次未加载区块
         if ((System.currentTimeMillis() - chunkSaveCacheTime) > (60000L * Settings.CHUNK_SAVE_TIME_MINUTE)) {
             chunkSaveCacheTime = System.currentTimeMillis();
@@ -132,6 +134,26 @@ public class WorldTick {
             if (!currentChunk.equals(player.getLastChunkPos())) {
                 player.setLastChunkPos(currentChunk);
                 player.sendPacket(new ClientboundSetChunkCacheCenterPacket(playerChunkX, playerChunkZ));
+            }
+        }
+    }
+
+    public void checkPlayerPos() {
+        for (Player player : world.getPlayers()) {
+            ChunkData chunkData = world.getChunkDataMap().get(Vector2i.from(player.getPosition().getFloorX() >> 4, player.getPosition().getFloorZ() >> 4));
+            if (chunkData != null) {
+                if (player.getPosition().getY() < -64 || player.getPosition().getY() > 320) {
+                    return;
+                }
+                ChunkSection chunkSection = chunkData.getChunkSections()[Slider.getChunkSectionIndex(player.getPosition().getFloorY())];
+                if (BlockProperties.checkIsSolidBlock(chunkSection.getBlock(player.getPosition().getFloorX() & 15, player.getPosition().getFloorY() & 15, player.getPosition().getFloorZ() & 15))) {
+                    player.setPosition(player.getLastValidPosition().getX(), player.getLastValidPosition().getY(), player.getLastValidPosition().getZ(), player.getYaw(), player.getPitch(), player.isOnGround());
+                    log.debug("正在修复玩家 {} 的位置！", player.getProfile().getName());
+                } else {
+                    player.setLastValidPosition(Vector3d.from(player.getPosition().getX(), player.getPosition().getY(), player.getPosition().getZ()));
+                }
+            } else {
+                log.error("玩家 {} 处在一个不存在的区块里！", player.getProfile().getName());
             }
         }
     }

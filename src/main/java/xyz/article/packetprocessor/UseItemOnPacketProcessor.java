@@ -36,7 +36,7 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
             int blockX = blockPos.getX();
             int blockY = blockPos.getY();
             int blockZ = blockPos.getZ();
-            if (blockY < -63 || blockY > 319) {
+            if (blockY < -64 || blockY > 320) {
                 session.send(new ClientboundBlockChangedAckPacket(useItemOnPacket.getSequence()));
                 session.send(new ClientboundSystemChatPacket(Component.text("超出世界y坐标限制"), false));
                 return;
@@ -127,6 +127,8 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
                             player1.sendPacket(new ClientboundAnimatePacket(Objects.requireNonNull(Slider.getPlayer(session)).getEntityId(), Animation.SWING_ARM));
                         }
                     }
+
+                    chunkData.updateHeightMap(blockX & 15, blockZ & 15);
                 } else {
                     log.error("Invalid section index: {}", sectionIndex);
                 }
