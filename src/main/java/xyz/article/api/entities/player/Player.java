@@ -1,6 +1,7 @@
 package xyz.article.api.entities.player;
 
 import net.kyori.adventure.key.Key;
+import net.kyori.adventure.text.Component;
 import org.cloudburstmc.math.vector.Vector2i;
 import org.cloudburstmc.math.vector.Vector3d;
 import org.cloudburstmc.nbt.NbtMap;
@@ -13,14 +14,18 @@ import org.geysermc.mcprotocollib.network.packet.Packet;
 import org.geysermc.mcprotocollib.protocol.data.game.entity.player.GameMode;
 import org.geysermc.mcprotocollib.protocol.data.game.item.ItemStack;
 import org.geysermc.mcprotocollib.protocol.packet.common.clientbound.ClientboundDisconnectPacket;
-import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundTeleportEntityPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundSystemChatPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundMoveEntityPosRotPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundPlayerPositionPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
+import xyz.article.api.command.CommandSender;
 import xyz.article.api.entities.EntityID;
+import xyz.article.api.entities.interfaces.Entity;
 import xyz.article.api.inventory.PlayerInventory;
 import xyz.article.api.world.World;
+import xyz.article.api.world.block.BlockFace;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
 
@@ -28,7 +33,7 @@ import java.io.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class Player {
+public class Player implements Entity, CommandSender {
     private static final Logger log = LoggerFactory.getLogger(Player.class);
     private final Session session;
     private final GameProfile profile;
@@ -127,7 +132,7 @@ public class Player {
     }
 
     /**
-     * 此方法用于更新玩家对象内部保存的位置(不会同步给其他玩家和绑定的客户端)
+     * 此方法用于更新玩家对象内部保存的位置(不会同步给其他玩家和绑定的客户端) (可使用第二个构造函数来自动同步位置)
      * @param x 要设置的x坐标
      * @param y 要设置的y坐标
      * @param z 要设置的z坐标
@@ -144,31 +149,33 @@ public class Player {
     }
 
     /**
-     * 此方法用于同时更新玩家对象内部的位置与其他玩家看到的玩家实体位置 (不建议大量使用，可能会导致带宽与性能占用升高)
+     * 此方法用于更新玩家对象内部保存的位置(不会同步给其他玩家和绑定的客户端)
      * @param x 要设置的x坐标
      * @param y 要设置的y坐标
      * @param z 要设置的z坐标
      * @param yaw 要设置的yaw
      * @param pitch 要设置的pitch
-     * @param onGround 是否在地上
+     * @param syncOtherPlayer 是否将玩家实体位置同步给其他玩家
      */
-    public void setPosition(double x, double y, double z, float yaw, float pitch, boolean onGround) {
+    public void updatePosition(double x, double y, double z, float yaw, float pitch, boolean onGround, boolean syncOtherPlayer) {
+        if (syncOtherPlayer) {
+            for (Player player1 : world.getPlayers()) {
+                if (!player1.equals(this)) {
+                    player1.sendPacket(new ClientboundMoveEntityPosRotPacket(
+                            entityId,
+                            (x - locationX), (y - locationY), (z - locationZ),
+                            yaw, pitch,
+                            onGround
+                    ));
+                }
+            }
+        }
+
         this.locationX = x;
         this.locationY = y;
         this.locationZ = z;
         this.angleYaw = yaw;
         this.anglePitch = pitch;
-
-        for (Player player1 : world.getPlayers()) {
-            if (!player1.equals(this)) {
-                player1.sendPacket(new ClientboundTeleportEntityPacket(
-                        entityId,
-                        x, y, z,
-                        yaw, pitch,
-                        onGround
-                ));
-            }
-        }
     }
 
     /**
@@ -182,6 +189,10 @@ public class Player {
         ));
     }
 
+    /**
+     * 从服务器踢出此玩家
+     * @param reason 踢出理由
+     */
     public void kick(String reason) {
         session.send(new ClientboundDisconnectPacket(reason));
         session.disconnect(reason);
@@ -240,6 +251,34 @@ public class Player {
 
     public void setLastValidPosition(Vector3d lastValidPosition) {
         this.lastValidPosition = lastValidPosition;
+    }
+
+    public BlockFace getFacing() {
+        float normalizedYaw = (angleYaw % 360 + 360) % 360;
+        if ((normalizedYaw >= 315) || (normalizedYaw < 45)) {
+            return BlockFace.SOUTH;
+        } else if (normalizedYaw >= 45 && normalizedYaw < 135) {
+            return BlockFace.WEST;
+        } else if (normalizedYaw >= 135 && normalizedYaw < 225) {
+            return BlockFace.NORTH;
+        } else {
+            return BlockFace.EAST;
+        }
+    }
+
+    public BlockFace getVerticalFacing() {
+        if (anglePitch < -45) {
+            return BlockFace.UP;
+        } else if (anglePitch > 45) {
+            return BlockFace.DOWN;
+        }
+        return null;
+    }
+
+
+    @Override
+    public void sendMessage(String msg) {
+        session.send(new ClientboundSystemChatPacket(Component.text(msg), false));
     }
 
     /**

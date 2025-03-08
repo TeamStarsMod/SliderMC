@@ -133,7 +133,7 @@ public class ChunkData {
      * 获取区块的位置
      * @return 区块位置
      */
-    public ChunkPos getChunkPos() {
+    public synchronized ChunkPos getChunkPos() {
         return chunkPos;
     }
 
@@ -141,7 +141,7 @@ public class ChunkData {
      * 获取子区块数组
      * @return 子区块数组
      */
-    public ChunkSection[] getChunkSections() {
+    public synchronized ChunkSection[] getChunkSections() {
         return chunkSections;
     }
 
@@ -149,7 +149,7 @@ public class ChunkData {
      * 获取高度图
      * @return 高度图NbtMap数据
      */
-    public NbtMap getHeightMap() {
+    public synchronized NbtMap getHeightMap() {
         return heightMap;
     }
 
@@ -157,11 +157,11 @@ public class ChunkData {
      * 设置高度图数据
      * @param heightMap 高度图数据
      */
-    public void setHeightMap(NbtMap heightMap) {
+    public synchronized void setHeightMap(NbtMap heightMap) {
         this.heightMap = heightMap;
     }
 
-    public void updateHeightMap(int x, int z) {
+    public synchronized void updateHeightMap(int x, int z) {
         int[][] heightMap = new int[16][16];
         int maxY = -64; // 初始化为世界最低Y值
 
@@ -188,7 +188,7 @@ public class ChunkData {
         this.heightMap = createHeightMapNbt(heightMap);
     }
 
-    private NbtMap createHeightMapNbt(int[][] heightValues) {
+    private synchronized NbtMap createHeightMapNbt(int[][] heightValues) {
         BitStorage storage = new BitStorage(9, 16 * 16);
         for (int x = 0; x < 16; x++) {
             for (int z = 0; z < 16; z++) {
@@ -205,7 +205,7 @@ public class ChunkData {
      * 获取光照更新数据
      * @return 光照更新数据
      */
-    public LightUpdateData getLightUpdateData() {
+    public synchronized LightUpdateData getLightUpdateData() {
         return lightUpdateData;
     }
 
@@ -213,7 +213,7 @@ public class ChunkData {
      * 设置光照更新数据
      * @param lightUpdateData 光照更新数据
      */
-    public void setLightUpdateData(LightUpdateData lightUpdateData) {
+    public synchronized void setLightUpdateData(LightUpdateData lightUpdateData) {
         this.lightUpdateData = lightUpdateData;
     }
 
@@ -221,7 +221,7 @@ public class ChunkData {
      * 获取方块实体数组
      * @return 方块实体数组
      */
-    public BlockEntityInfo[] getBlockEntityInfos() {
+    public synchronized BlockEntityInfo[] getBlockEntityInfos() {
         return blockEntityInfos;
     }
 
@@ -229,7 +229,7 @@ public class ChunkData {
      * 设置方块实体数组
      * @param blockEntityInfos 方块实体数组
      */
-    public void setBlockEntityInfos(BlockEntityInfo[] blockEntityInfos) {
+    public synchronized void setBlockEntityInfos(BlockEntityInfo[] blockEntityInfos) {
         this.blockEntityInfos = blockEntityInfos;
     }
 
@@ -237,7 +237,7 @@ public class ChunkData {
      * 获取此区块的区块数据包
      * @return 区块数据包 (ClientboundLevelChunkWithLightPacket)
      */
-    public ClientboundLevelChunkWithLightPacket getPacket() {
+    public synchronized ClientboundLevelChunkWithLightPacket getPacket() {
         byteBuf.clear();
         for (int i = 0; i < 24; i++) {
             helper.writeChunkSection(byteBuf, chunkSections[i]);

@@ -15,17 +15,7 @@ public class MovePlayerPosPacketProcessor implements PacketProcessor {
         if (packet instanceof ServerboundMovePlayerPosPacket playerPosPacket) {
             Player player = Slider.getPlayer(session);
             if (player != null) {
-                double moveX = playerPosPacket.getX() - player.getPosition().getX();
-                double moveY = playerPosPacket.getY() - player.getPosition().getY();
-                double moveZ = playerPosPacket.getZ() - player.getPosition().getZ();
-
-                player.updatePosition(playerPosPacket.getX(), playerPosPacket.getY(), playerPosPacket.getZ(), player.getYaw(), player.getPitch(), playerPosPacket.isOnGround());
-
-                for (Session session1 : RunningData.globalSessions) {
-                    if (!session1.equals(session)) {
-                        session1.send(new ClientboundMoveEntityPosPacket(player.getEntityId(), moveX, moveY, moveZ, playerPosPacket.isOnGround()));
-                    }
-                }
+                player.updatePosition(playerPosPacket.getX(), playerPosPacket.getY(), playerPosPacket.getZ(), player.getYaw(), player.getPitch(), playerPosPacket.isOnGround(), true);
 
                 /*if (playerPosPacket.getY() < -400) {
                     session.send(new ClientboundUpdateMobEffectPacket(player.getEntityId(), Effect.BLINDNESS, 255, 30, true, false, false, false));

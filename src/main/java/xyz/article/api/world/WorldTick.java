@@ -147,7 +147,8 @@ public class WorldTick {
                 }
                 ChunkSection chunkSection = chunkData.getChunkSections()[Slider.getChunkSectionIndex(player.getPosition().getFloorY())];
                 if (BlockProperties.checkIsSolidBlock(chunkSection.getBlock(player.getPosition().getFloorX() & 15, player.getPosition().getFloorY() & 15, player.getPosition().getFloorZ() & 15))) {
-                    player.setPosition(player.getLastValidPosition().getX(), player.getLastValidPosition().getY(), player.getLastValidPosition().getZ(), player.getYaw(), player.getPitch(), player.isOnGround());
+                    player.updatePosition(player.getLastValidPosition().getX(), player.getLastValidPosition().getY(), player.getLastValidPosition().getZ(), player.getYaw(), player.getPitch(), player.isOnGround(), true);
+                    player.syncClient();
                     log.debug("正在修复玩家 {} 的位置！", player.getProfile().getName());
                 } else {
                     player.setLastValidPosition(Vector3d.from(player.getPosition().getX(), player.getPosition().getY(), player.getPosition().getZ()));

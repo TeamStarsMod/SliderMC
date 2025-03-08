@@ -3,10 +3,12 @@ package xyz.article.api.world;
 import net.kyori.adventure.key.Key;
 import org.cloudburstmc.math.vector.Vector2i;
 import org.cloudburstmc.nbt.*;
+import org.geysermc.mcprotocollib.protocol.data.game.chunk.ChunkSection;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.Settings;
+import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
@@ -154,33 +156,52 @@ public class World {
         return players;
     }
 
-    public void preGenerationWorld () {
-        int low = - (generator.getPRE_WORLD_SIZE() / 2);
-        int high = generator.getPRE_WORLD_SIZE() / 2;
-        for (int x = low; x < high; x++) {
-            for (int z = low; z < high; z++) {
-                Vector2i vector2i = Vector2i.from(x, z);
-                ChunkPos pos = new ChunkPos(this, vector2i);
-                chunkDataMap.put(vector2i, generator.generateChunk(pos));
-            }
-        }
-    }
-
-    public void generationWorldArea (Vector2i currentLocation, int radius) {
-        double circumference = 2 * Math.PI * radius;
-        int numPoints = (int) (circumference / 0.7);
-
-        for (int i = 0; i < numPoints; i++) {
-            double theta = (2 * Math.PI / numPoints) * i;
-            int x = (int) (radius * Math.cos(theta));
-            int y = (int) (radius * Math.sin(theta));
-            Vector2i vector2i = Vector2i.from(currentLocation.getX() + x, currentLocation.getY() + y);
-            if (!chunkDataMap.containsKey(vector2i)) chunkDataMap.put(vector2i, generator.generateChunk(new ChunkPos(this, vector2i)));
-        }
-    }
-
     public WorldGenerator getGenerator () {
         return generator;
+    }
+
+    /**
+     * 设置指定全局坐标的方块
+     * @param x 方块x坐标
+     * @param y 方块y坐标
+     * @param z 方块z坐标
+     * @param blockState 方块blockStateId
+     * @return 是否成功(成功返回true, 不成功返回false)
+     */
+    public boolean setBlockAt(int x, int y, int z, int blockState) {
+        if (y < -64 || y > 320) {
+            throw new IllegalArgumentException("Y坐标只能在-64到320之间，但收到了 " + y + " ！");
+        }
+
+        int chunkX = x >> 4;
+        int chunkZ = z >> 4;
+
+        // 优先生成玩家所在出生点的区块
+        ChunkData chunk;
+        if (chunkDataMap.get(Vector2i.from(chunkX, chunkZ)) != null) {
+            chunk = chunkDataMap.get(Vector2i.from(chunkX, chunkZ));
+        } else {
+            File chunksDir = new File(Settings.SAVE_FOLDER, "worlds/" + key.namespace() + "_" + key.value() + "/chunks");
+            if (chunksDir.mkdirs()) log.debug("已新建区块文件夹");
+            File chunkFile = new File(chunksDir, "chunk_" + chunkX + "_" + chunkZ + ".slider");
+            if (chunkFile.exists()) {
+                chunk = ChunkData.deserializeFromFile(chunkFile);
+            } else {
+                chunk = null;
+            }
+        }
+
+        if (chunk == null) {
+            return false;
+        }
+
+        ChunkSection chunkSection = chunk.getChunkSections()[Slider.getChunkSectionIndex(y)];
+
+        int localX = x & 15;
+        int localY = y & 15;
+        int localZ = z & 15;
+        chunkSection.setBlock(localX, localY, localZ, blockState);
+        return true;
     }
 
     /**
