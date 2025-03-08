@@ -20,7 +20,9 @@ import org.slf4j.LoggerFactory;
 import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.packetprocessor.PacketProcessor;
+import xyz.article.api.world.block.BlockFace;
 import xyz.article.api.world.block.BlockItemMap;
+import xyz.article.api.world.block.blocktypes.BlockData;
 import xyz.article.api.world.chunk.ChunkData;
 
 import java.util.Objects;
@@ -42,25 +44,33 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
                 return;
             }
 
+            BlockFace face;
+
             // 根据玩家点击的面对坐标进行修正
             switch (useItemOnPacket.getFace()) {
                 case UP:
                     blockY++;
+                    face = BlockFace.DOWN;
                     break;
                 case DOWN:
                     blockY--;
+                    face = BlockFace.UP;
                     break;
                 case NORTH:
                     blockZ--;
+                    face = BlockFace.SOUTH;
                     break;
                 case SOUTH:
                     blockZ++;
+                    face = BlockFace.NORTH;
                     break;
                 case WEST:
                     blockX--;
+                    face = BlockFace.EAST;
                     break;
                 case EAST:
                     blockX++;
+                    face = BlockFace.WEST;
                     break;
                 default:
                     throw new IllegalArgumentException("Unexpected direction: " + useItemOnPacket.getFace());
@@ -106,7 +116,10 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
                     if (item != null) {
                         id = item.getId();
                     }
-                    int blockID = BlockItemMap.getBlockID(id);
+                    int blockID = 0;
+                    if (BlockItemMap.blockBlockBehaviorConcurrentHashMap.get(id) != null) {
+                        blockID = BlockItemMap.blockBlockBehaviorConcurrentHashMap.get(id).getPlacedBlockState(player, Vector3i.from(blockX, blockY, blockZ), new BlockData(face));
+                    }
                     if (blockID == 0) {
                         session.send(new ClientboundBlockChangedAckPacket(useItemOnPacket.getSequence()));
                         session.send(new ClientboundSystemChatPacket(Component.text("没有获取到你手中方块物品对应的方块！").color(NamedTextColor.RED), false));
