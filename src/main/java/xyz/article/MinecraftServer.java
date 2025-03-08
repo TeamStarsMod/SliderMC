@@ -21,6 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.api.Server;
 import xyz.article.api.Slider;
+import xyz.article.api.command.CommandManager;
+import xyz.article.api.console.ConsoleCommandSender;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.event.EventManager;
 import xyz.article.api.event.Listener;
@@ -46,6 +48,8 @@ public class MinecraftServer implements Server {
     public static Server apiServer;
     public static EventManager eventManager;
     public static PluginManager pluginManager;
+    public static CommandManager commandManager;
+    public static ConsoleCommandSender consoleCommandSender;
     private static final Logger log = LoggerFactory.getLogger(MinecraftServer.class);
     private static final File saveDir = new File("./" + Settings.SAVE_FOLDER);
 
@@ -133,8 +137,12 @@ public class MinecraftServer implements Server {
         server.close();
     }
 
-    public static TcpServer getServer() {
+    public static TcpServer getTCPServer() {
         return server;
+    }
+
+    public static Server getServer () {
+        return apiServer;
     }
 
     @Override
@@ -149,7 +157,12 @@ public class MinecraftServer implements Server {
 
     @Override
     public PluginManager getPluginManager() {
-        return null;
+        return pluginManager;
+    }
+
+    @Override
+    public CommandManager getCommandManager() {
+        return commandManager;
     }
 
     /**
