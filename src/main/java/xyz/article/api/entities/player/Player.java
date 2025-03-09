@@ -20,6 +20,7 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.play
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xyz.article.RunningData;
+import xyz.article.Settings;
 import xyz.article.api.command.CommandSender;
 import xyz.article.api.entities.EntityID;
 import xyz.article.api.entities.interfaces.Entity;
@@ -273,6 +274,27 @@ public class Player implements Entity, CommandSender {
             return BlockFace.DOWN;
         }
         return null;
+    }
+
+    /**
+     * 检查指定坐标是否在此玩家的圆形视野范围内
+     *
+     * @param x 检查的X坐标
+     * @param y 检查的Y坐标
+     * @param z 检查的Z坐标
+     * @return 如果坐标在视野范围内，则返回true，否则返回false
+     */
+    public boolean isWithinViewDistance(int x, int y, int z) {
+        int viewDistance = Settings.VIEW_DISTANCE;
+        long maxSquared = (long) viewDistance * viewDistance;
+
+        int dx = x - ((int) Math.floor(locationX));
+        int dy = y - ((int) Math.floor(locationY));
+        int dz = z - ((int) Math.floor(locationZ));
+
+        long squaredDistance = (long) dx * dx + (long) dy * dy + (long) dz * dz;
+
+        return squaredDistance <= maxSquared;
     }
 
 

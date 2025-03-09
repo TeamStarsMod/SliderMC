@@ -11,7 +11,6 @@ import xyz.article.Settings;
 import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.world.chunk.ChunkData;
-import xyz.article.api.world.chunk.ChunkPos;
 import xyz.article.api.world.worldgen.WorldGenerator;
 
 import java.io.File;
