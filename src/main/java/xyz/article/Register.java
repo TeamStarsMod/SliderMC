@@ -1,6 +1,7 @@
 package xyz.article;
 
 import xyz.article.api.packetprocessor.PacketProcessor;
+import xyz.article.api.world.block.blockstate.BlockStateManager;
 import xyz.article.packetprocessor.*;
 
 import java.util.List;
@@ -25,7 +26,7 @@ public class Register {
         registerPacketProcessor(new PlayerActionPacketProcessor());
         registerPacketProcessor(new SetCarriedItemPacketProcessor());
         registerPacketProcessor(new SetCreativeModeSlotPacketProcessor());
-        registerPacketProcessor(new UseItemOnPacketProcessor());
+        registerPacketProcessor(new UseItemOnPacketProcessor(MinecraftServer.blockStateManager));
         registerPacketProcessor(new PlayerCommandPacketProcessor());
         registerPacketProcessor(new PlayerAbilitiesPacketProcessor());
         registerPacketProcessor(new SwingPacketProcessor());

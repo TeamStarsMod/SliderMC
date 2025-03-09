@@ -1,5 +1,7 @@
 package xyz.article;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -31,7 +33,7 @@ import xyz.article.api.packetprocessor.PacketProcessor;
 import xyz.article.api.plugin.Plugin;
 import xyz.article.api.plugin.PluginManager;
 import xyz.article.api.world.World;
-import xyz.article.api.world.block.BlockItemMap;
+import xyz.article.api.world.block.blockstate.BlockStateManager;
 import xyz.article.event.EventManagerInstant;
 import xyz.article.handlers.LoginHandler;
 import xyz.article.handlers.ServerInfoBuildHandler;
@@ -40,6 +42,7 @@ import xyz.article.world.OverWorldGenerator;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Objects;
 
@@ -52,6 +55,7 @@ public class MinecraftServer implements Server {
     public static ConsoleCommandSender consoleCommandSender;
     private static final Logger log = LoggerFactory.getLogger(MinecraftServer.class);
     private static final File saveDir = new File("./" + Settings.SAVE_FOLDER);
+    public static BlockStateManager blockStateManager = new BlockStateManager();
 
     public static void main(String[] args) throws IOException {
         long start = System.currentTimeMillis();
@@ -59,6 +63,14 @@ public class MinecraftServer implements Server {
         File propertiesFile = new File("./settings.yml");
         if (propertiesFile.createNewFile()) log.info("已创建配置文件");
         Settings.init(propertiesFile);
+        log.debug("正在加载方块和物品映射表...");
+        InputStreamReader reader = new InputStreamReader(Objects.requireNonNull(MinecraftServer.class.getClassLoader().getResourceAsStream("mapping/items.json")));
+        JsonObject items = (JsonObject) JsonParser.parseReader(reader);
+        blockStateManager.loadItemMappings(items);
+        reader = new InputStreamReader(Objects.requireNonNull(MinecraftServer.class.getClassLoader().getResourceAsStream("mapping/blocks.json")));
+        JsonObject blocks = (JsonObject) JsonParser.parseReader(reader);
+        blockStateManager.loadBlockDefinitions(blocks);
+        log.debug("加载完成");
         server = new MyTCPServer(Settings.BIND_ADDRESS, Settings.SERVER_PORT, MinecraftProtocol::new);
         eventManager = new EventManagerInstant();
         pluginManager = new PluginManagerInstant();
@@ -125,7 +137,6 @@ public class MinecraftServer implements Server {
             }
         });
 
-        BlockItemMap.writeMap();
         RunningData.worldMap.put(Key.key("minecraft:overworld"), new World(Key.key("minecraft:overworld"), new OverWorldGenerator(114514L, 0.02, 0.1, 0.01)));
         Register.register();
         pluginManager.loadAllJarInFolder(new File("./plugins"));

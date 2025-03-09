@@ -1,7 +1,6 @@
 package xyz.article.packetprocessor;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.cloudburstmc.math.vector.Vector2i;
 import org.cloudburstmc.math.vector.Vector3i;
 import org.geysermc.mcprotocollib.network.Session;
@@ -21,14 +20,21 @@ import xyz.article.api.Slider;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.packetprocessor.PacketProcessor;
 import xyz.article.api.world.block.BlockFace;
-import xyz.article.api.world.block.BlockItemMap;
-import xyz.article.api.world.block.blocktypes.BlockData;
+import xyz.article.api.world.block.blockstate.BlockStateManager;
+import xyz.article.api.world.block.placement.BlockPlacementCalculator;
 import xyz.article.api.world.chunk.ChunkData;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 public class UseItemOnPacketProcessor implements PacketProcessor {
     private static final Logger log = LoggerFactory.getLogger(UseItemOnPacketProcessor.class);
+    private final BlockStateManager stateManager;
+
+    public UseItemOnPacketProcessor(BlockStateManager manager) {
+        this.stateManager = manager;
+    }
 
     @Override
     public void process(Session session, Packet packet) {
@@ -105,6 +111,10 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
                     int localY = blockY - (sectionIndex * sectionHeight + worldBottom);
                     int localZ = blockZ & 15;
 
+                    if (chunkSections[sectionIndex].getBlock(localX, localY, localZ) != 0) {
+                        return;
+                    }
+
                     // 设置新方块
                     int id = 0;
                     ItemStack item;
@@ -116,26 +126,33 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
                     if (item != null) {
                         id = item.getId();
                     }
-                    int blockID = 0;
-                    if (BlockItemMap.blockBlockBehaviorConcurrentHashMap.get(id) != null) {
-                        blockID = BlockItemMap.blockBlockBehaviorConcurrentHashMap.get(id).getPlacedBlockState(player, Vector3i.from(blockX, blockY, blockZ), new BlockData(face));
-                    }
-                    if (blockID == 0) {
-                        session.send(new ClientboundBlockChangedAckPacket(useItemOnPacket.getSequence()));
-                        session.send(new ClientboundSystemChatPacket(Component.text("没有获取到你手中方块物品对应的方块！").color(NamedTextColor.RED), false));
-                        return;
+                    // 获取物品对应的方块类型
+                    int itemId = item != null ? item.getId() : 0;
+                    String blockType = stateManager.getBlockIdFromItemId(itemId);
+                    Map<String, String> stateProperties = BlockPlacementCalculator.calculateProperties(
+                            player,
+                            face,
+                            Vector3i.from(blockX, blockY, blockZ),
+                            blockType
+                    );
+
+                    int blockStateId = stateManager.getBlockStateId(itemId, stateProperties);
+
+                    // 处理特殊方块
+                    if (blockStateId != 0 && blockType.endsWith("_door")) {
+                        chunkSections[sectionIndex].setBlock(localX, localY, localZ, blockStateId);
+                        Map<String, String> upperProps = new HashMap<>(stateProperties);
+                        upperProps.put("half", "upper");
+                        int upperStateId = stateManager.getBlockStateId(itemId, upperProps);
+                        chunkSections[sectionIndex+1].setBlock(localX, localY+1, localZ, upperStateId);
                     }
 
-                    if (chunkSections[sectionIndex].getBlock(localX, localY, localZ) != 0) {
-                        return;
-                    }
-
-                    chunkSections[sectionIndex].setBlock(localX, localY, localZ, blockID);
+                    chunkSections[sectionIndex].setBlock(localX, localY, localZ, blockStateId);
 
                     // 发送区块更新包
                     session.send(new ClientboundBlockChangedAckPacket(useItemOnPacket.getSequence()));
                     for (Player player1 : player.getWorld().getPlayers()) {
-                        player1.sendPacket(new ClientboundBlockUpdatePacket(new BlockChangeEntry(Vector3i.from(blockX, blockY, blockZ), blockID)));
+                        player1.sendPacket(new ClientboundBlockUpdatePacket(new BlockChangeEntry(Vector3i.from(blockX, blockY, blockZ), blockStateId)));
                         if (!(player1.getSession().equals(session))) {
                             player1.sendPacket(new ClientboundAnimatePacket(Objects.requireNonNull(Slider.getPlayer(session)).getEntityId(), Animation.SWING_ARM));
                         }
