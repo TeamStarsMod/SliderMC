@@ -50,37 +50,33 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
                 return;
             }
 
-            BlockFace face;
-
             // 根据玩家点击的面对坐标进行修正
-            switch (useItemOnPacket.getFace()) {
-                case UP:
+            BlockFace face = switch (useItemOnPacket.getFace()) {
+                case UP -> {
                     blockY++;
-                    face = BlockFace.DOWN;
-                    break;
-                case DOWN:
+                    yield BlockFace.UP;
+                }
+                case DOWN -> {
                     blockY--;
-                    face = BlockFace.UP;
-                    break;
-                case NORTH:
+                    yield BlockFace.DOWN;
+                }
+                case NORTH -> {
                     blockZ--;
-                    face = BlockFace.SOUTH;
-                    break;
-                case SOUTH:
+                    yield BlockFace.NORTH;
+                }
+                case SOUTH -> {
                     blockZ++;
-                    face = BlockFace.NORTH;
-                    break;
-                case WEST:
+                    yield BlockFace.SOUTH;
+                }
+                case WEST -> {
                     blockX--;
-                    face = BlockFace.EAST;
-                    break;
-                case EAST:
+                    yield BlockFace.WEST;
+                }
+                case EAST -> {
                     blockX++;
-                    face = BlockFace.WEST;
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unexpected direction: " + useItemOnPacket.getFace());
-            }
+                    yield BlockFace.EAST;
+                }
+            };
 
             if (player != null) {
                 int playerBlockX = (int) Math.floor(player.getPosition().getX());
@@ -140,6 +136,7 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
 
                     // 处理特殊方块
                     if (blockStateId != 0 && blockType.endsWith("_door")) {
+                        System.out.println("door");
                         chunkSections[sectionIndex].setBlock(localX, localY, localZ, blockStateId);
                         Map<String, String> upperProps = new HashMap<>(stateProperties);
                         upperProps.put("half", "upper");

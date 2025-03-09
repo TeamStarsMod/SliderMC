@@ -26,6 +26,12 @@ public class ChatPacketProcessor implements PacketProcessor {
                 MinecraftServer.stop();
                 return;
             }
+            if (chatPacket.getMessage().startsWith(".tps")) {
+                session.send(new ClientboundSystemChatPacket(Component.text("TPS in 1s, 5s, 15s, 1m, 5m, 15m"), false));
+                double[] tps = Objects.requireNonNull(Slider.getPlayer(session)).getWorld().getTPS();
+                session.send(new ClientboundSystemChatPacket(Component.text(tps[0] + ", " + tps[1] + ", " + tps[2] + ", " + tps[3] + ", " + tps[4] + ", " + tps[5]), false));
+                return;
+            }
             GameProfile profile = Objects.requireNonNull(Slider.getPlayer(session)).getProfile();
             PlayerChatEvent chatEvent = new PlayerChatEvent(Slider.getPlayer(session), chatPacket.getMessage());
             Slider.getEventManager().callEvent(chatEvent);

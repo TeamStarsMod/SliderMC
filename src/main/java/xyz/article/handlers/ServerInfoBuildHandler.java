@@ -27,6 +27,7 @@ import static xyz.article.MinecraftServer.eventManager;
  */
 public class ServerInfoBuildHandler implements ServerInfoBuilder {
     private static final Logger log = LoggerFactory.getLogger(ServerInfoBuildHandler.class);
+    public static byte[] iconData = null;
 
     @Override
     public ServerStatusInfo buildInfo(Session session) {
@@ -71,12 +72,11 @@ public class ServerInfoBuildHandler implements ServerInfoBuilder {
         }
         PlayerInfo playerInfo = new PlayerInfo(Settings.MAX_PLAYERS, RunningData.globalPlayers.size(), list);
         VersionInfo versionInfo = new VersionInfo(MinecraftCodec.CODEC.getMinecraftVersion(), MinecraftCodec.CODEC.getProtocolVersion());
-        byte[] icon = null;
         boolean enforcesSecureChat = false;
         if (Settings.SHOULD_PING_SHOWN) {
             log.info("<-- {} has pinged -->", session.getRemoteAddress()); // 在玩家Ping服务器时，显示一条Ping消息
         }
-        ClientPingEvent event = new ClientPingEvent(gradientMOTD, playerInfo, versionInfo, icon, enforcesSecureChat);
+        ClientPingEvent event = new ClientPingEvent(gradientMOTD, playerInfo, versionInfo, iconData, enforcesSecureChat);
         eventManager.callEvent(event);
         return new ServerStatusInfo(
                 event.motd, // Motd

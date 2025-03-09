@@ -253,7 +253,7 @@ public class Player implements Entity, CommandSender {
         this.lastValidPosition = lastValidPosition;
     }
 
-    public BlockFace getFacing() {
+    public BlockFace getHorizontalFacing() {
         float normalizedYaw = (angleYaw % 360 + 360) % 360;
         if ((normalizedYaw >= 315) || (normalizedYaw < 45)) {
             return BlockFace.SOUTH;

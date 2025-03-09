@@ -16,8 +16,9 @@ import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
 
 import java.io.IOException;
-import java.util.Iterator;
-import java.util.Map;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.*;
 
 /**
  * 用于控制世界的Tick逻辑
@@ -27,15 +28,24 @@ public class WorldTick {
     private final World world;
     private int worldTime = 0;
     private int worldAge = 0;
+    private static final int[] TPS_WINDOWS = {1, 5, 15, 60, 300, 900}; // 窗口时间（秒）
+    private final Queue<Long>[] tpsQueues = new Queue[6];
+    private final int[] tpsCounts = new int[6];
 
     public WorldTick(World world) {
         this.world = world;
+
+        for (int i = 0; i < tpsQueues.length; i++) {
+            tpsQueues[i] = new ArrayDeque<>();
+        }
     }
 
     /**
      * Tick逻辑
      */
     public void tick() {
+        long now = System.currentTimeMillis();
+        updateTPSRecords(now);
         updateTime();
         chunkHandler();
         checkPlayerPos();
@@ -158,6 +168,40 @@ public class WorldTick {
             }
         }
     }
+
+    /**
+     * 更新TPS记录队列
+     */
+    private void updateTPSRecords(long timestamp) {
+        for (int i = 0; i < TPS_WINDOWS.length; i++) {
+            Queue<Long> queue = tpsQueues[i];
+            long windowMillis = TPS_WINDOWS[i] * 1000L;
+
+            // 添加新记录并清理过期数据
+            queue.add(timestamp);
+            while (!queue.isEmpty() && timestamp - queue.peek() > windowMillis) {
+                queue.poll();
+            }
+
+            // 更新当前窗口计数
+            tpsCounts[i] = queue.size();
+        }
+    }
+
+    /**
+     * 获取各时间窗口的TPS
+     * @return [1s, 5s, 15s, 1m, 5m, 15m] 的平均TPS
+     */
+    public double[] getTPS() {
+        double[] tps = new double[6];
+        for (int i = 0; i < TPS_WINDOWS.length; i++) {
+            tps[i] = BigDecimal.valueOf(tpsCounts[i] / (double) TPS_WINDOWS[i])
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .doubleValue();
+        }
+        return tps;
+    }
+
 
     /**
      * 设置世界的时间 (0-24000)

@@ -1,0 +1,2 @@
+{bind-address: 0.0.0.0, server-port: 25565, max-players: 20, online-mode: false, view-distance: 10,
+  should-ping-shown: false, chunk-save-time-minute: 30}

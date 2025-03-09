@@ -205,6 +205,14 @@ public class World {
     }
 
     /**
+     * 获取世界的平均TPS (索引0-5分别对应1s, 5s, 15s, 1m, 5m, 15m)
+     * @return 平均TPS数组
+     */
+    public double[] getTPS() {
+        return worldTick.getTPS();
+    }
+
+    /**
      * 未完成
      * 从世界存档NBT文件中获取世界
      * @param worldSaveFile 世界存档文件 (world.slider)

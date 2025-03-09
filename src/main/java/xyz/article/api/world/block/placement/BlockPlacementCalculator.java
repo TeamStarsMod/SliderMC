@@ -1,6 +1,5 @@
 package xyz.article.api.world.block.placement;
 
-import org.cloudburstmc.math.vector.Vector3f;
 import org.cloudburstmc.math.vector.Vector3i;
 import xyz.article.api.entities.player.Player;
 import xyz.article.api.world.block.BlockFace;
@@ -11,10 +10,8 @@ public class BlockPlacementCalculator {
     public static ConcurrentHashMap<String, String> calculateProperties(Player player, BlockFace placedFace, Vector3i position, String blockType) {
         ConcurrentHashMap<String, String> properties = new ConcurrentHashMap<>();
 
-        // 示例：处理按钮的朝向逻辑
-        if (blockType.endsWith("_button")) {
-            System.out.println("button");
-            // 确定face属性 (floor/wall/ceiling)
+        // Button
+        if (blockType != null && blockType.endsWith("_button")) {
             if (placedFace == BlockFace.UP) {
                 properties.put("face", "ceiling");
             } else if (placedFace == BlockFace.DOWN) {
@@ -23,9 +20,12 @@ public class BlockPlacementCalculator {
                 properties.put("face", "wall");
             }
 
-            properties.put("facing", player.getFacing().name());
+            if ("wall".equals(properties.get("face"))) {
+                properties.put("facing", placedFace.getOpposite().name().toLowerCase());
+            } else {
+                properties.put("facing", player.getHorizontalFacing().name().toLowerCase());
+            }
 
-            // 默认未激活
             properties.put("powered", "false");
         }
 

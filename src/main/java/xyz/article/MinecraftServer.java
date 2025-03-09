@@ -41,6 +41,7 @@ import xyz.article.plugin.PluginManagerInstant;
 import xyz.article.world.OverWorldGenerator;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.List;
@@ -59,7 +60,9 @@ public class MinecraftServer implements Server {
 
     public static void main(String[] args) throws IOException {
         long start = System.currentTimeMillis();
+
         new ShutdownHook();
+
         File propertiesFile = new File("./settings.yml");
         if (propertiesFile.createNewFile()) log.info("已创建配置文件");
         Settings.init(propertiesFile);
@@ -71,6 +74,16 @@ public class MinecraftServer implements Server {
         JsonObject blocks = (JsonObject) JsonParser.parseReader(reader);
         blockStateManager.loadBlockDefinitions(blocks);
         log.debug("加载完成");
+        File iconFile = new File("./icon.png");
+        if (iconFile.exists()) {
+            FileInputStream imageInputStream = new FileInputStream(iconFile);
+            byte[] imageBytes = new byte[(int) iconFile.length()];
+            imageInputStream.read(imageBytes);
+            imageInputStream.close();
+            ServerInfoBuildHandler.iconData = imageBytes;
+            log.debug("已加载图片");
+        }
+
         server = new MyTCPServer(Settings.BIND_ADDRESS, Settings.SERVER_PORT, MinecraftProtocol::new);
         eventManager = new EventManagerInstant();
         pluginManager = new PluginManagerInstant();
@@ -137,7 +150,7 @@ public class MinecraftServer implements Server {
             }
         });
 
-        RunningData.worldMap.put(Key.key("minecraft:overworld"), new World(Key.key("minecraft:overworld"), new OverWorldGenerator(114514L, 0.02, 0.1, 0.01)));
+        RunningData.worldMap.put(Key.key("minecraft:overworld"), new World(Key.key("minecraft:overworld"), new OverWorldGenerator(110923L, 0.02, 0.1, 0.01)));
         Register.register();
         pluginManager.loadAllJarInFolder(new File("./plugins"));
         server.bind();
