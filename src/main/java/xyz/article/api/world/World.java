@@ -26,6 +26,9 @@ public class World {
     private final WorldTick worldTick;
     private final List<Player> players;
     private final WorldGenerator generator;
+    
+    // 新增：区块缓存系统
+    private final ChunkCache chunkCache;
 
     private static final int TPS = 20; // 目标TPS
     private static final long TICK_INTERVAL = 1000 / TPS; // 每次 tick 的时间间隔(ms)
@@ -41,6 +44,9 @@ public class World {
         this.worldTick = new WorldTick(this);
         this.players = new CopyOnWriteArrayList<>();
         this.generator = generator;
+        
+        // 初始化区块缓存系统
+        this.chunkCache = new ChunkCache(2000, 100, 50); // 更大的缓存配置
 
         log.info("正在初始化世界 {}", key);
         //preGenerationWorld(); //会导致存档问题
@@ -79,16 +85,24 @@ public class World {
         try {
             stopTicking();
             log.info("正在保存世界 {}", key);
+            
+            // 关闭区块缓存系统
+            chunkCache.shutdown();
+            
             File chunksDir = new File(dir, "chunks");
             if (chunksDir.mkdir()) log.info("正在为世界 {} 创建区块文件夹", key);
+            
+            // 异步保存所有区块
+            List<CompletableFuture<Void>> saveFutures = new ArrayList<>();
             chunkDataMap.forEach((chunkPos, chunkData) -> {
                 File chunkDataFile = new File(chunksDir, "chunk_" + chunkPos.getX() + "_" + chunkPos.getY() + ".slider");
-                try {
-                    chunkData.serializeToFile(chunkDataFile);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                CompletableFuture<Void> saveFuture = chunkCache.saveChunkAsync(this, chunkPos, chunkData);
+                saveFutures.add(saveFuture);
             });
+            
+            // 等待所有保存完成
+            CompletableFuture.allOf(saveFutures.toArray(new CompletableFuture[0])).join();
+            
             log.info("世界 {} 保存完成", key);
 
             NbtMapBuilder nbtMapBuilder = NbtMap.builder();
@@ -113,22 +127,48 @@ public class World {
     }
 
     /**
-     * 从存档中获取一个区块
+     * 从存档中获取一个区块 - 优化版本
      * @param pos 区块坐标
      * @return 区块数据
      */
-    public @Nullable ChunkData getChunkFromSave(Vector2i pos) throws IOException {
-        File chunksDir = new File("./" + Settings.SAVE_FOLDER + "/worlds/" + key.namespace() + "_" + key.value() + "/chunks");
-        if (!chunksDir.exists() || !chunksDir.isDirectory()) {
+    public @Nullable ChunkData getChunk(Vector2i pos) {
+        // 首先检查内存缓存
+        if (chunkDataMap.containsKey(pos)) {
+            return chunkDataMap.get(pos);
+        }
+        
+        // 使用区块缓存系统同步加载
+        try {
+            ChunkData chunkData = chunkCache.loadChunkSync(this, pos);
+            if (chunkData != null) {
+                // 添加到内存映射
+                chunkDataMap.put(pos, chunkData);
+            }
+            return chunkData;
+        } catch (Exception e) {
+            log.error("加载区块 ({}, {}) 失败: {}", pos.getX(), pos.getY(), e.getMessage());
             return null;
         }
-
-        File file = new File(chunksDir, "chunk_" + pos.getX() + "_" + pos.getY() + ".slider");
-        if (file.exists()) {
-            return ChunkData.deserializeFromFile(file);
-        } else {
-            return null;
+    }
+    
+    /**
+     * 异步加载区块 - 新方法
+     * @param pos 区块坐标
+     * @return CompletableFuture<ChunkData>
+     */
+    public CompletableFuture<ChunkData> getChunkAsync(Vector2i pos) {
+        // 首先检查内存缓存
+        if (chunkDataMap.containsKey(pos)) {
+            return CompletableFuture.completedFuture(chunkDataMap.get(pos));
         }
+        
+        return chunkCache.loadChunkAsync(this, pos).thenApply(chunkData -> {
+            if (chunkData != null) {
+                // 添加到内存映射
+                chunkDataMap.put(pos, chunkData);
+            }
+            return chunkData;
+        });
     }
 
     /**
@@ -159,8 +199,12 @@ public class World {
         return generator;
     }
 
+    public WorldTick getWorldTick() {
+        return worldTick;
+    }
+
     /**
-     * 设置指定全局坐标的方块
+     * 设置指定全局坐标的方块 - 优化版本
      * @param x 方块x坐标
      * @param y 方块y坐标
      * @param z 方块z坐标
@@ -174,20 +218,13 @@ public class World {
 
         int chunkX = x >> 4;
         int chunkZ = z >> 4;
+        Vector2i chunkPos = Vector2i.from(chunkX, chunkZ);
 
         // 优先生成玩家所在出生点的区块
-        ChunkData chunk;
-        if (chunkDataMap.get(Vector2i.from(chunkX, chunkZ)) != null) {
-            chunk = chunkDataMap.get(Vector2i.from(chunkX, chunkZ));
-        } else {
-            File chunksDir = new File(Settings.SAVE_FOLDER, "worlds/" + key.namespace() + "_" + key.value() + "/chunks");
-            if (chunksDir.mkdirs()) log.debug("已新建区块文件夹");
-            File chunkFile = new File(chunksDir, "chunk_" + chunkX + "_" + chunkZ + ".slider");
-            if (chunkFile.exists()) {
-                chunk = ChunkData.deserializeFromFile(chunkFile);
-            } else {
-                chunk = null;
-            }
+        ChunkData chunk = chunkDataMap.get(chunkPos);
+        if (chunk == null) {
+            // 尝试从缓存加载
+            chunk = getChunk(chunkPos);
         }
 
         if (chunk == null) {
@@ -245,7 +282,7 @@ public class World {
     }
 
     /**
-     * 保存并卸载未被任何玩家加载的区块
+     * 保存并卸载未被任何玩家加载的区块 - 优化版本
      */
     public void saveAndUnloadUnusedChunks() {
         File worldDir = new File(Settings.SAVE_FOLDER, "worlds/" + key.namespace() + "_" + key.value());
@@ -258,6 +295,7 @@ public class World {
         }
 
         List<Vector2i> toRemove = new ArrayList<>();
+        List<CompletableFuture<Void>> saveFutures = new ArrayList<>();
 
         // 遍历所有已加载的区块
         chunkDataMap.forEach((pos, chunk) -> {
@@ -273,22 +311,40 @@ public class World {
 
             // 如果没有玩家使用则保存并标记移除
             if (!isUsed) {
-                File chunkFile = new File(chunksDir, "chunk_" + pos.getX() + "_" + pos.getY() + ".slider");
-                try {
-                    chunk.serializeToFile(chunkFile);
-                    toRemove.add(pos);
-                    log.debug("已保存并卸载区块 ({}, {})", pos.getX(), pos.getY());
-                } catch (IOException e) {
-                    log.error("保存区块 ({}, {}) 失败: {}", pos.getX(), pos.getY(), e.getMessage());
-                }
+                CompletableFuture<Void> saveFuture = chunkCache.saveChunkAsync(this, pos, chunk);
+                saveFutures.add(saveFuture);
+                toRemove.add(pos);
+                log.debug("已标记保存并卸载区块 ({}, {})", pos.getX(), pos.getY());
             }
         });
 
+        // 等待所有保存完成
+        if (!saveFutures.isEmpty()) {
+            CompletableFuture.allOf(saveFutures.toArray(new CompletableFuture[0])).join();
+        }
+
         // 从内存中移除未使用的区块
-        toRemove.forEach(chunkDataMap::remove);
+        toRemove.forEach(pos -> {
+            chunkDataMap.remove(pos);
+            chunkCache.removeFromCache(pos);
+        });
 
         if (!toRemove.isEmpty()) {
             log.info("世界 {} 已保存并卸载 {} 个未使用区块", key, toRemove.size());
         }
+    }
+    
+    /**
+     * 获取区块缓存统计信息
+     */
+    public String getChunkCacheStats() {
+        return chunkCache.getCacheStats();
+    }
+    
+    /**
+     * 获取区块缓存实例
+     */
+    public ChunkCache getChunkCache() {
+        return chunkCache;
     }
 }

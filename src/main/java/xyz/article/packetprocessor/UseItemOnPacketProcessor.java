@@ -26,6 +26,7 @@ import xyz.article.api.world.block.BlockFace;
 import xyz.article.api.world.block.blockstate.BlockStateManager;
 import xyz.article.api.world.block.placement.BlockPlacementCalculator;
 import xyz.article.api.world.chunk.ChunkData;
+import xyz.article.MinecraftServer;
 
 import java.util.*;
 
@@ -163,6 +164,16 @@ public class UseItemOnPacketProcessor implements PacketProcessor {
                     blockUpdatePacketList.add(new ClientboundBlockUpdatePacket(new BlockChangeEntry(Vector3i.from(blockX, blockY, blockZ), blockStateId)));
 
                     chunkSections[sectionIndex].setBlock(localX, localY, localZ, blockStateId);
+
+                    // 触发方块更新系统
+                    if (player != null && player.getWorld() != null) {
+                        MinecraftServer.blockUpdateManager.handleBlockUpdate(
+                            player.getWorld(), 
+                            Vector3i.from(blockX, blockY, blockZ), 
+                            0, // 旧方块状态（空气）
+                            blockStateId // 新方块状态
+                        );
+                    }
 
                     // 发送区块更新包
                     session.send(new ClientboundBlockChangedAckPacket(useItemOnPacket.getSequence()));

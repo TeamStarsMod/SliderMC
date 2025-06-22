@@ -22,6 +22,7 @@ import xyz.article.api.world.block.BlockProperties;
 
 import java.io.*;
 import java.util.*;
+import java.util.concurrent.*;
 
 /**
  * Chunk数据
@@ -267,8 +268,8 @@ public class ChunkData {
                 .putInt("z", chunkPos.pos().getY())
                 .build());
 
-        // 序列化 chunkSections
-        List<NbtMap> chunkSectionsList = new ArrayList<>();
+        // 序列化 chunkSections - 优化：减少对象创建
+        List<NbtMap> chunkSectionsList = new ArrayList<>(24);
         for (int i = 0; i < 24; i++) {
             ChunkSection chunkSection = chunkSections[i];
             NbtMapBuilder sectionBuilder = NbtMap.builder();
@@ -279,20 +280,9 @@ public class ChunkData {
             chunkDataBuilder.putInt("bitsPerEntry", chunkDataPalette.getStorage().getBitsPerEntry());
             chunkDataBuilder.putLongArray("chunkData", chunkDataPalette.getStorage().getData());
             chunkDataBuilder.putInt("paletteType", getPaletteTypeId(chunkDataPalette.getPalette()));
-            if (chunkDataPalette.getPalette() instanceof ListPalette listPalette) {
-                int[] data = listPalette.getData();
-                chunkDataBuilder.putIntArray("paletteData", data);
-            }  else if (chunkDataPalette.getPalette() instanceof MapPalette mapPalette){
-                // 保存id到state的数组
-                int size = mapPalette.size();
-                int[] paletteData = new int[size];
-                for (int id = 0; id < size; id++) {
-                    paletteData[id] = mapPalette.idToState(id);
-                }
-                chunkDataBuilder.putIntArray("paletteData", paletteData);
-            } else if (chunkDataPalette.getPalette() instanceof SingletonPalette singletonPalette) {
-                chunkDataBuilder.putInt("singletonState", singletonPalette.idToState(0));
-            }
+            
+            // 优化：减少重复代码
+            serializePalette(chunkDataBuilder, chunkDataPalette.getPalette());
             sectionBuilder.putCompound("chunkDataPalette", chunkDataBuilder.build());
 
             // 序列化生物群系数据
@@ -301,19 +291,9 @@ public class ChunkData {
             biomeDataBuilder.putInt("bitsPerEntry", biomeDataPalette.getStorage().getBitsPerEntry());
             biomeDataBuilder.putLongArray("biomeData", biomeDataPalette.getStorage().getData());
             biomeDataBuilder.putInt("paletteType", getPaletteTypeId(biomeDataPalette.getPalette()));
-            if (biomeDataPalette.getPalette() instanceof ListPalette listPalette) {
-                int[] data = listPalette.getData();
-                biomeDataBuilder.putIntArray("paletteData", data);
-            } else if (biomeDataPalette.getPalette() instanceof MapPalette mapPalette){
-                int size = mapPalette.size();
-                int[] paletteData = new int[size];
-                for (int id = 0; id < size; id++) {
-                    paletteData[id] = mapPalette.idToState(id);
-                }
-                biomeDataBuilder.putIntArray("paletteData", paletteData);
-            } else if (biomeDataPalette.getPalette() instanceof SingletonPalette singletonPalette) {
-                biomeDataBuilder.putInt("singletonState", singletonPalette.idToState(0));
-            }
+            
+            // 优化：减少重复代码
+            serializePalette(biomeDataBuilder, biomeDataPalette.getPalette());
             sectionBuilder.putCompound("biomeDataPalette", biomeDataBuilder.build());
 
             sectionBuilder.putInt("blockCount", chunkSection.getBlockCount());
@@ -324,8 +304,8 @@ public class ChunkData {
         // 序列化 heightMap
         nbtBuilder.putCompound("heightMap", heightMap);
 
-        // 序列化 blockEntityInfos
-        List<NbtMap> blockEntitiesList = new ArrayList<>();
+        // 序列化 blockEntityInfos - 优化：预分配大小
+        List<NbtMap> blockEntitiesList = new ArrayList<>(blockEntityInfos.length);
         for (BlockEntityInfo blockEntity : blockEntityInfos) {
             NbtMapBuilder blockEntityBuilder = NbtMap.builder();
             blockEntityBuilder.putInt("x", blockEntity.getX());
@@ -363,15 +343,36 @@ public class ChunkData {
 
         nbtBuilder.putCompound("lightUpdateData", lightUpdateDataBuilder.build());
 
-        // 将 NBT 数据写入文件
-        try (FileOutputStream fos = new FileOutputStream(file)) {
+        // 优化：使用缓冲流提高I/O性能
+        try (BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(file))) {
             NbtMap nbt = nbtBuilder.build();
-            NBTOutputStream nbtOutputStream = NbtUtils.createWriter(fos);
+            NBTOutputStream nbtOutputStream = NbtUtils.createWriter(bos);
             nbtOutputStream.writeValue(nbt);
             nbtOutputStream.close();
-            fos.flush();
+            bos.flush();
         } catch (Exception e) {
-            log.error(e.toString());
+            log.error("序列化区块到文件失败: {}", e.toString());
+            throw new IOException("序列化区块失败", e);
+        }
+    }
+
+    /**
+     * 序列化调色板数据 - 提取公共方法减少重复代码
+     */
+    private void serializePalette(NbtMapBuilder builder, Palette palette) {
+        if (palette instanceof ListPalette listPalette) {
+            int[] data = listPalette.getData();
+            builder.putIntArray("paletteData", data);
+        } else if (palette instanceof MapPalette mapPalette) {
+            // 保存id到state的数组
+            int size = mapPalette.size();
+            int[] paletteData = new int[size];
+            for (int id = 0; id < size; id++) {
+                paletteData[id] = mapPalette.idToState(id);
+            }
+            builder.putIntArray("paletteData", paletteData);
+        } else if (palette instanceof SingletonPalette singletonPalette) {
+            builder.putInt("singletonState", singletonPalette.idToState(0));
         }
     }
 
@@ -389,12 +390,13 @@ public class ChunkData {
      * @return 反序列化后的 ChunkData 对象
      */
     public static ChunkData deserializeFromFile(File file) {
-        try (FileInputStream fis = new FileInputStream(file)) {
-            NBTInputStream nbtInputStream = NbtUtils.createReader(fis);
+        // 优化：使用缓冲流提高I/O性能
+        try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file))) {
+            NBTInputStream nbtInputStream = NbtUtils.createReader(bis);
             NbtMap nbt = nbtInputStream.readValue(NbtType.COMPOUND);
             return fromNbt(nbt);
         } catch (Exception e) {
-            log.error(e.toString());
+            log.error("从文件反序列化区块失败: {}", e.toString());
             return null;
         }
     }
@@ -406,13 +408,16 @@ public class ChunkData {
      */
     public static ChunkData fromNbt(NbtMap nbt) {
         // 反序列化 chunkPos
-        // 忽略这个警告
         NbtMap chunkPosNbt = nbt.getCompound("chunkPos");
         ChunkPos chunkPos = new ChunkPos(RunningData.worldMap.get(Key.key(chunkPosNbt.getString("world"))), Vector2i.from(chunkPosNbt.getInt("x"), chunkPosNbt.getInt("z")));
 
-        // 反序列化 chunkSections
+        // 反序列化 chunkSections - 优化：预分配数组
         List<NbtMap> chunkSectionsList = nbt.getList("chunkSections", NbtType.COMPOUND);
         ChunkSection[] chunkSections = new ChunkSection[24];
+        
+        // 优化：重用MinecraftCodecHelper和ByteBuf
+        MinecraftCodecHelper helper = new MinecraftCodecHelper();
+        
         for (int i = 0; i < chunkSectionsList.size(); i++) {
             NbtMap sectionNbt = chunkSectionsList.get(i);
 
@@ -421,93 +426,14 @@ public class ChunkData {
             int chunkDataBitsPerEntry = chunkDataNbt.getInt("bitsPerEntry");
             long[] chunkDataData = chunkDataNbt.getLongArray("chunkData");
 
-            DataPalette chunkDataPalette;
-            switch (chunkDataNbt.getInt("paletteType")) {
-                // 0 = GlobalPalette
-                // 1 = ListPalette
-                // 2 = MapPalette
-                // 3 = SingletonPalette
-                case 0 -> chunkDataPalette = new DataPalette(GlobalPalette.INSTANCE, new BitStorage(chunkDataBitsPerEntry, 16 * 16 * 16, chunkDataData), PaletteType.CHUNK);
-                case 1 -> {
-                    int[] data = chunkDataNbt.getIntArray("paletteData");
-                    MinecraftCodecHelper helper = new MinecraftCodecHelper(); // 写入原ListPalette数据
-                    ByteBuf buf = Unpooled.buffer();
-                    helper.writeVarInt(buf, data.length);
-                    for (int state : data) {
-                        helper.writeVarInt(buf, state);
-                    }
-                    chunkDataPalette = new DataPalette(new ListPalette(chunkDataBitsPerEntry, buf, helper), new BitStorage(chunkDataBitsPerEntry, 16 * 16 * 16, chunkDataData), PaletteType.CHUNK);
-                }
-                case 2 -> {
-                    int[] paletteData = chunkDataNbt.getIntArray("paletteData");
-                    MinecraftCodecHelper helper = new MinecraftCodecHelper();
-                    ByteBuf buf = Unpooled.buffer();
-                    helper.writeVarInt(buf, paletteData.length); // 写入调色板大小
-                    for (int state : paletteData) {
-                        helper.writeVarInt(buf, state); // 按顺序写入每个state
-                    }
-                    buf.readerIndex(0); // 重置读取位置
-                    MapPalette mapPalette = new MapPalette(chunkDataBitsPerEntry, buf, helper);
-                    chunkDataPalette = new DataPalette(mapPalette, new BitStorage(chunkDataBitsPerEntry, 16 * 16 * 16, chunkDataData), PaletteType.CHUNK);
-                }
-                case 3 -> {
-                    int singletonState = chunkDataNbt.getInt("singletonState");
-                    SingletonPalette singletonPalette = new SingletonPalette(singletonState);
-                    chunkDataPalette = new DataPalette(
-                            singletonPalette,
-                            new BitStorage(chunkDataBitsPerEntry, 1, chunkDataData),
-                            PaletteType.CHUNK
-                    );
-                }
-                default -> {
-                    throw new IllegalArgumentException("未知的调色板类型！");
-                }
-            }
+            DataPalette chunkDataPalette = deserializePalette(chunkDataNbt, chunkDataBitsPerEntry, chunkDataData, helper, PaletteType.CHUNK);
 
             // 反序列化生物群系数据
             NbtMap biomeDataNbt = sectionNbt.getCompound("biomeDataPalette");
             int biomeDataBitsPerEntry = biomeDataNbt.getInt("bitsPerEntry");
             long[] biomeDataData = biomeDataNbt.getLongArray("biomeData");
-            DataPalette biomeDataPalette;
-            switch (biomeDataNbt.getInt("paletteType")) {
-                // 0 = GlobalPalette
-                // 1 = ListPalette
-                // 2 = MapPalette
-                // 3 = SingletonPalette
-                case 0 -> biomeDataPalette = new DataPalette(GlobalPalette.INSTANCE, new BitStorage(biomeDataBitsPerEntry, 16 * 16 * 16, biomeDataData), PaletteType.BIOME);
-                case 1 -> {
-                    int[] data = biomeDataNbt.getIntArray("paletteData");
-                    MinecraftCodecHelper helper = new MinecraftCodecHelper(); // 写入原ListPalette数据
-                    ByteBuf buf = Unpooled.buffer();
-                    helper.writeVarInt(buf, data.length);
-                    for (int state : data) {
-                        helper.writeVarInt(buf, state);
-                    }
-                    biomeDataPalette = new DataPalette(new ListPalette(biomeDataBitsPerEntry, buf, helper), new BitStorage(biomeDataBitsPerEntry, 16 * 16 * 16, biomeDataData), PaletteType.BIOME);
-                }
-                case 2 -> {
-                    int[] paletteData = biomeDataNbt.getIntArray("paletteData");
-                    MinecraftCodecHelper helper = new MinecraftCodecHelper();
-                    ByteBuf buf = Unpooled.buffer();
-                    helper.writeVarInt(buf, paletteData.length);
-                    for (int state : paletteData) {
-                        helper.writeVarInt(buf, state);
-                    }
-                    buf.readerIndex(0);
-                    MapPalette mapPalette = new MapPalette(biomeDataBitsPerEntry, buf, helper);
-                    biomeDataPalette = new DataPalette(mapPalette, new BitStorage(biomeDataBitsPerEntry, 16 * 16 * 16, biomeDataData), PaletteType.BIOME);
-                }
-                case 3 -> {
-                    int singletonState = biomeDataNbt.getInt("singletonState");
-                    SingletonPalette singletonPalette = new SingletonPalette(singletonState);
-                    biomeDataPalette = new DataPalette(
-                            singletonPalette,
-                            new BitStorage(biomeDataBitsPerEntry, 1, biomeDataData),
-                            PaletteType.BIOME
-                    );
-                }
-                default -> throw new IllegalArgumentException("未知的调色板类型！");
-            }
+            DataPalette biomeDataPalette = deserializePalette(biomeDataNbt, biomeDataBitsPerEntry, biomeDataData, helper, PaletteType.BIOME);
+            
             // 创建 ChunkSection
             int blockCount = sectionNbt.getInt("blockCount");
             chunkSections[i] = new ChunkSection(blockCount, chunkDataPalette, biomeDataPalette);
@@ -516,7 +442,7 @@ public class ChunkData {
         // 反序列化 heightMap
         NbtMap heightMap = nbt.getCompound("heightMap");
 
-        // 反序列化 blockEntityInfos
+        // 反序列化 blockEntityInfos - 优化：预分配数组
         List<NbtMap> blockEntitiesList = nbt.getList("blockEntityInfos", NbtType.COMPOUND);
         BlockEntityInfo[] blockEntityInfos = new BlockEntityInfo[blockEntitiesList.size()];
         for (int i = 0; i < blockEntitiesList.size(); i++) {
@@ -556,6 +482,45 @@ public class ChunkData {
 
         // 创建并返回 ChunkData 对象
         return new ChunkData(chunkPos, chunkSections, heightMap, blockEntityInfos, lightUpdateData);
+    }
+
+    /**
+     * 反序列化调色板数据 - 提取公共方法减少重复代码
+     */
+    private static DataPalette deserializePalette(NbtMap paletteNbt, int bitsPerEntry, long[] data, MinecraftCodecHelper helper, PaletteType paletteType) {
+        switch (paletteNbt.getInt("paletteType")) {
+            case 0 -> { // GlobalPalette
+                return new DataPalette(GlobalPalette.INSTANCE, new BitStorage(bitsPerEntry, 16 * 16 * 16, data), paletteType);
+            }
+            case 1 -> { // ListPalette
+                int[] paletteData = paletteNbt.getIntArray("paletteData");
+                ByteBuf buf = Unpooled.buffer();
+                helper.writeVarInt(buf, paletteData.length);
+                for (int state : paletteData) {
+                    helper.writeVarInt(buf, state);
+                }
+                return new DataPalette(new ListPalette(bitsPerEntry, buf, helper), new BitStorage(bitsPerEntry, 16 * 16 * 16, data), paletteType);
+            }
+            case 2 -> { // MapPalette
+                int[] paletteData = paletteNbt.getIntArray("paletteData");
+                ByteBuf buf = Unpooled.buffer();
+                helper.writeVarInt(buf, paletteData.length);
+                for (int state : paletteData) {
+                    helper.writeVarInt(buf, state);
+                }
+                buf.readerIndex(0);
+                MapPalette mapPalette = new MapPalette(bitsPerEntry, buf, helper);
+                return new DataPalette(mapPalette, new BitStorage(bitsPerEntry, 16 * 16 * 16, data), paletteType);
+            }
+            case 3 -> { // SingletonPalette
+                int singletonState = paletteNbt.getInt("singletonState");
+                SingletonPalette singletonPalette = new SingletonPalette(singletonState);
+                return new DataPalette(singletonPalette, new BitStorage(bitsPerEntry, 1, data), paletteType);
+            }
+            default -> {
+                throw new IllegalArgumentException("未知的调色板类型！");
+            }
+        }
     }
 
     private static BitSet readBitSet(byte[] bytes, int bitLength) {

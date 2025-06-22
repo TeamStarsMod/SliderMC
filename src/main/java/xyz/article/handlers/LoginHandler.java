@@ -44,6 +44,7 @@ import xyz.article.api.world.chunk.ChunkPos;
 import xyz.article.packets.ClientboundServerBrandPacket;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 
 /**
@@ -96,24 +97,22 @@ public class LoginHandler implements ServerLoginHandler {
             player = new Player(entityId, session, profile, new PlayerInventory(), RunningData.worldMap.get(Key.key("minecraft:overworld")), GameMode.CREATIVE, new PlayerAbilities(true, true, false, true, 0.05f, 0.1f),0, 64, 0, 0, 0);
             int spawnChunkX = ((int) player.getPosition().getX()) >> 4;
             int spawnChunkZ = ((int) player.getPosition().getZ()) >> 4;
+            Vector2i spawnChunkPos = Vector2i.from(spawnChunkX, spawnChunkZ);
 
             // 优先生成玩家所在出生点的区块
             ChunkData spawnChunk;
-            if (player.getWorld().getChunkDataMap().get(Vector2i.from(spawnChunkX, spawnChunkZ)) != null) {
-                spawnChunk = player.getWorld().getChunkDataMap().get(Vector2i.from(spawnChunkX, spawnChunkZ));
+            if (player.getWorld().getChunkDataMap().get(spawnChunkPos) != null) {
+                spawnChunk = player.getWorld().getChunkDataMap().get(spawnChunkPos);
             } else {
-                File chunksDir = new File(Settings.SAVE_FOLDER, "worlds/" + player.getWorld().getKey().namespace() + "_" + player.getWorld().getKey().value() + "/chunks");
-                if (chunksDir.mkdirs()) log.debug("已新建区块文件夹");
-                File chunkFile = new File(chunksDir, "chunk_" + spawnChunkX + "_" + spawnChunkZ + ".slider");
-                if (chunkFile.exists()) {
-                    spawnChunk = ChunkData.deserializeFromFile(chunkFile);
-                } else {
-                    spawnChunk = player.getWorld().getGenerator().generateChunk(new ChunkPos(player.getWorld(), Vector2i.from(spawnChunkX, spawnChunkZ)));
-                }
+                // 使用新的缓存系统加载区块
+                spawnChunk = player.getWorld().getChunk(spawnChunkPos);
             }
 
             // 确定玩家出生点的y坐标
             if (spawnChunk != null) {
+                // 确保区块添加到内存映射中
+                player.getWorld().getChunkDataMap().put(spawnChunkPos, spawnChunk);
+                
                 NbtMap heightMap = spawnChunk.getHeightMap();
                 long[] surfaceData = heightMap.getLongArray("WORLD_SURFACE");
                 BitStorage decoded = new BitStorage(9, 256, surfaceData);
@@ -214,5 +213,51 @@ public class LoginHandler implements ServerLoginHandler {
 
         // 完成Login
         log.info("{} 加入了游戏", profile.getName());
+        
+        // 立即发送出生点区块给玩家，避免掉虚空
+        int spawnChunkX = ((int) player.getPosition().getX()) >> 4;
+        int spawnChunkZ = ((int) player.getPosition().getZ()) >> 4;
+        Vector2i spawnChunkPos = Vector2i.from(spawnChunkX, spawnChunkZ);
+        
+        // 确保出生点区块已加载并发送给玩家
+        ChunkData spawnChunk = player.getWorld().getChunkDataMap().get(spawnChunkPos);
+        if (spawnChunk != null && !player.getLoadedChunks().containsKey(spawnChunkPos)) {
+            player.getLoadedChunks().put(spawnChunkPos, spawnChunk);
+            player.sendPacket(spawnChunk.getPacket());
+            log.debug("已立即发送出生点区块 ({}, {}) 给玩家 {}", 
+                spawnChunkX, spawnChunkZ, player.getProfile().getName());
+        } else if (spawnChunk == null) {
+            log.warn("玩家 {} 的出生点区块未找到，可能导致掉虚空", player.getProfile().getName());
+        }
+        
+        // 预加载玩家周围的区块（紧急加载）
+        int emergencyViewDistance = Math.min(3, Settings.VIEW_DISTANCE); // 紧急加载3个区块半径
+        for (int x = spawnChunkX - emergencyViewDistance; x <= spawnChunkX + emergencyViewDistance; x++) {
+            for (int z = spawnChunkZ - emergencyViewDistance; z <= spawnChunkZ + emergencyViewDistance; z++) {
+                Vector2i chunkPos = Vector2i.from(x, z);
+                
+                // 跳过已经加载的区块
+                if (player.getLoadedChunks().containsKey(chunkPos)) {
+                    continue;
+                }
+                
+                // 检查内存中是否已有区块
+                ChunkData chunkData = player.getWorld().getChunkDataMap().get(chunkPos);
+                if (chunkData != null) {
+                    player.getLoadedChunks().put(chunkPos, chunkData);
+                    player.sendPacket(chunkData.getPacket());
+                    continue;
+                }
+                
+                // 紧急同步加载区块
+                chunkData = player.getWorld().getChunk(chunkPos);
+                
+                if (chunkData != null) {
+                    player.getLoadedChunks().put(chunkPos, chunkData);
+                    player.sendPacket(chunkData.getPacket());
+                    log.debug("紧急加载区块 ({}, {}) 给玩家 {}", x, z, player.getProfile().getName());
+                }
+            }
+        }
     }
 }

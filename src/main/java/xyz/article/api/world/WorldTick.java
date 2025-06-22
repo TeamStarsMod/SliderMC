@@ -14,6 +14,7 @@ import xyz.article.api.entities.player.Player;
 import xyz.article.api.world.block.BlockProperties;
 import xyz.article.api.world.chunk.ChunkData;
 import xyz.article.api.world.chunk.ChunkPos;
+import xyz.article.api.world.ChunkLoadingManager;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -31,6 +32,7 @@ public class WorldTick {
     private static final int[] TPS_WINDOWS = {1, 5, 15, 60, 300, 900}; // 窗口时间（秒）
     private final Queue<Long>[] tpsQueues = new Queue[6];
     private final int[] tpsCounts = new int[6];
+    private final ChunkLoadingManager chunkLoadingManager = new ChunkLoadingManager();
 
     public WorldTick(World world) {
         this.world = world;
@@ -49,6 +51,8 @@ public class WorldTick {
         updateTime();
         chunkHandler();
         checkPlayerPos();
+        // 处理区块加载
+        chunkLoadingManager.processChunkLoading();
     }
 
     private long timeSetCacheTime = 0;
@@ -90,7 +94,7 @@ public class WorldTick {
             int playerChunkX = playerChunkPos.pos().getX();
             int playerChunkZ = playerChunkPos.pos().getY();
 
-            // 圆形遍历加载区块
+            // 圆形遍历加载区块 - 优化版本
             for (int x = playerChunkX - viewDistance; x <= playerChunkX + viewDistance; x++) {
                 int dx = x - playerChunkX;
                 long xSquared = (long) dx * dx;
@@ -99,28 +103,51 @@ public class WorldTick {
                 int maxDz = (int) Math.sqrt(maxSquared - xSquared);
                 for (int z = playerChunkZ - maxDz; z <= playerChunkZ + maxDz; z++) {
                     Vector2i chunkKey = Vector2i.from(x, z);
-                    ChunkData chunkData = null;
-                    boolean notFound = true;
-                    if (world.getChunkDataMap().containsKey(chunkKey)) {
-                        chunkData = world.getChunkDataMap().get(chunkKey);
-                        notFound = false;
+                    
+                    // 检查玩家是否已经加载了这个区块
+                    if (player.getLoadedChunks().containsKey(chunkKey)) {
+                        continue; // 已经加载，跳过
                     }
-                    if (notFound) {
-                        try {
-                            chunkData = world.getChunkFromSave(chunkKey);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                        if (chunkData == null) {
-                            chunkData = world.getGenerator().generateChunk(new ChunkPos(world, chunkKey));
-                        }
-
-                        world.getChunkDataMap().put(chunkKey, chunkData);
-                    }
-                    if (!player.getLoadedChunks().containsKey(chunkKey)) {
+                    
+                    // 检查内存中是否已有区块
+                    ChunkData chunkData = world.getChunkDataMap().get(chunkKey);
+                    if (chunkData != null) {
+                        // 内存中已有，直接发送给玩家
                         player.getLoadedChunks().put(chunkKey, chunkData);
                         player.sendPacket(chunkData.getPacket());
+                        continue;
                     }
+                    
+                    // 使用异步加载，避免阻塞tick
+                    world.getChunkAsync(chunkKey).thenAccept(loadedChunkData -> {
+                        if (loadedChunkData != null) {
+                            // 检查玩家是否还在线且需要这个区块
+                            if (player.getLoadedChunks().containsKey(chunkKey)) {
+                                return; // 已经加载了
+                            }
+                            
+                            // 检查玩家是否还在视距内
+                            ChunkPos currentPlayerChunk = Slider.getChunkPos(player);
+                            int currentPlayerChunkX = currentPlayerChunk.pos().getX();
+                            int currentPlayerChunkZ = currentPlayerChunk.pos().getY();
+                            
+                            int dx2 = chunkKey.getX() - currentPlayerChunkX;
+                            int dz2 = chunkKey.getY() - currentPlayerChunkZ;
+                            long squaredDistance = (long) dx2 * dx2 + (long) dz2 * dz2;
+                            
+                            if (squaredDistance <= maxSquared) {
+                                // 发送区块给玩家
+                                player.getLoadedChunks().put(chunkKey, loadedChunkData);
+                                player.sendPacket(loadedChunkData.getPacket());
+                                log.debug("异步加载区块 ({}, {}) 给玩家 {}", 
+                                    chunkKey.getX(), chunkKey.getY(), player.getProfile().getName());
+                            }
+                        }
+                    }).exceptionally(throwable -> {
+                        log.error("异步加载区块 ({}, {}) 失败: {}", 
+                            chunkKey.getX(), chunkKey.getY(), throwable.getMessage());
+                        return null;
+                    });
                 }
             }
 
@@ -228,5 +255,9 @@ public class WorldTick {
      */
     public int getWorldAge() {
         return worldAge;
+    }
+
+    public ChunkLoadingManager getChunkLoadingManager() {
+        return chunkLoadingManager;
     }
 }

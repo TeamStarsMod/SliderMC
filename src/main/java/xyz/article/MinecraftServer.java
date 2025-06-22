@@ -33,12 +33,15 @@ import xyz.article.api.packetprocessor.PacketProcessor;
 import xyz.article.api.plugin.Plugin;
 import xyz.article.api.plugin.PluginManager;
 import xyz.article.api.world.World;
+import xyz.article.api.world.block.BlockUpdateManager;
 import xyz.article.api.world.block.blockstate.BlockStateManager;
 import xyz.article.event.EventManagerInstant;
 import xyz.article.handlers.LoginHandler;
 import xyz.article.handlers.ServerInfoBuildHandler;
 import xyz.article.plugin.PluginManagerInstant;
 import xyz.article.world.OverWorldGenerator;
+import xyz.article.command.CommandManagerInstant;
+import xyz.article.command.ChunkCacheCommand;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -57,6 +60,7 @@ public class MinecraftServer implements Server {
     private static final Logger log = LoggerFactory.getLogger(MinecraftServer.class);
     private static final File saveDir = new File("./" + Settings.SAVE_FOLDER);
     public static BlockStateManager blockStateManager = new BlockStateManager();
+    public static BlockUpdateManager blockUpdateManager = new BlockUpdateManager();
 
     public static void main(String[] args) throws IOException {
         long start = System.currentTimeMillis();
@@ -87,6 +91,7 @@ public class MinecraftServer implements Server {
         server = new MyTCPServer(Settings.BIND_ADDRESS, Settings.SERVER_PORT, MinecraftProtocol::new);
         eventManager = new EventManagerInstant();
         pluginManager = new PluginManagerInstant();
+        commandManager = new CommandManagerInstant();
         apiServer = new MinecraftServer();
         SessionService sessionService = new SessionService();
         sessionService.setProxy(null);
@@ -152,6 +157,7 @@ public class MinecraftServer implements Server {
 
         RunningData.worldMap.put(Key.key("minecraft:overworld"), new World(Key.key("minecraft:overworld"), new OverWorldGenerator(110923L, 0.02, 0.1, 0.01)));
         Register.register();
+        registerCommands();
         pluginManager.loadAllJarInFolder(new File("./plugins"));
         server.bind();
         log.info("启动完成，用时 {}ms，键入help来获取帮助！", System.currentTimeMillis() - start);
@@ -227,5 +233,16 @@ public class MinecraftServer implements Server {
                 log.error("在停止服务器时出现错误！ {}", e.toString());
             }
         }).start();
+    }
+
+    /**
+     * 注册所有命令
+     */
+    private static void registerCommands() {
+        if (commandManager instanceof CommandManagerInstant cmdManager) {
+            // 注册区块缓存统计命令
+            cmdManager.registerCommand("chunkcache", new ChunkCacheCommand());
+            log.info("已注册命令: chunkcache");
+        }
     }
 }
